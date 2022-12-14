@@ -159,7 +159,7 @@ class Lexer {
             id += this.readChar();
             next = this.peek();
         }
-        return id; 
+        return id;
     }
 
     /**
