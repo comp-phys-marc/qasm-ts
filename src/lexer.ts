@@ -29,8 +29,15 @@ function isLetter(c:string): boolean {
  * @return Whether the character is alphanumeric.
  */
 function isAlpha(c:string): boolean {
-    if (c.match(/^[0-9a-zA-Z]+$/)) {
+    if (c.match(/[0-9a-zA-Z]+$/)) {
        return true;
+    }
+    return false;
+}
+
+function isUnicode(c:string): boolean {
+    if (c.match(/^\u0000-\u00ff/)) {
+        return true;
     }
     return false;
 }
@@ -138,7 +145,7 @@ class Lexer {
         while (isNumeric(this.peek())) {
             num += this.readChar();
         }
-        return num; 
+        return num;
     }
 
     /**
@@ -147,8 +154,10 @@ class Lexer {
      */
     readIdentifier = (): string => {
         let id = '';
-        while (isAlpha(this.peek())) {
+        let next = this.peek();
+        while (isAlpha(next) || next == "_" || isUnicode(next)) {
             id += this.readChar();
+            next = this.peek();
         }
         return id; 
     }
