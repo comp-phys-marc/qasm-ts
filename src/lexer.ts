@@ -83,7 +83,7 @@ class Lexer {
    * @return An array of tokens and their corresponding values.
    */
   lex = (): Array<[Token, (number | string)?]> => {
-    let tokens: Array<[Token, (number | string)?]> = [];
+    const tokens: Array<[Token, (number | string)?]> = [];
     let token: [Token, (number | string)?];
     if (!this.verifyInput()) {
       throw MissingSemicolonError;
@@ -189,7 +189,7 @@ class Lexer {
       return [Token.EndOfFile];
     }
 
-    let char = this.peek();
+    const char = this.peek();
     this.readChar();
 
     switch (char) {
@@ -245,7 +245,7 @@ class Lexer {
           this.readChar(3);
           return [Token.Gate];
         }
-        let literal = char + this.readIdentifier();
+        const literal = char + this.readIdentifier();
         return [lookup(literal), literal];
       case "q":
         if (
@@ -256,7 +256,7 @@ class Lexer {
           this.readChar(3);
           return [Token.QReg];
         }
-        let qregLit = char + this.readIdentifier();
+        const qregLit = char + this.readIdentifier();
         return [lookup(qregLit), qregLit];
       case "c":
         if (
@@ -267,7 +267,7 @@ class Lexer {
           this.readChar(3);
           return [Token.QReg];
         }
-        let cregLit = char + this.readIdentifier();
+        const cregLit = char + this.readIdentifier();
         return [lookup(cregLit), cregLit];
       case "b":
         if (
@@ -281,7 +281,7 @@ class Lexer {
           this.readChar(6);
           return [Token.Barrier];
         }
-        let barLit = char + this.readIdentifier();
+        const barLit = char + this.readIdentifier();
         return [lookup(barLit), barLit];
       case "m":
         if (
@@ -295,20 +295,20 @@ class Lexer {
           this.readChar(6);
           return [Token.Measure];
         }
-        let measureLit = char + this.readIdentifier();
+        const measureLit = char + this.readIdentifier();
         return [lookup(measureLit), measureLit];
       case '"':
-        let stringLiteral = char + this.readStringLiteral('"');
+        const stringLiteral = char + this.readStringLiteral('"');
         return [Token.String, stringLiteral];
       case "’":
-        let singleStringLiteral = char + this.readStringLiteral("’");
+        const singleStringLiteral = char + this.readStringLiteral("’");
         return [Token.String, singleStringLiteral];
       default:
         if (isLetter(char)) {
-          let literal = char + this.readIdentifier();
+          const literal = char + this.readIdentifier();
           return [lookup(literal), literal];
         } else if (isNumeric(char)) {
-          let num = char + this.readNumeric();
+          const num = char + this.readNumeric();
           if (num.indexOf(".") != -1) {
             return [Token.Real, parseFloat(num)];
           } else {
