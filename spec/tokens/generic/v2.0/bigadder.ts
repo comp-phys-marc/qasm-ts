@@ -1,6 +1,6 @@
 export const bigAdderTokens = [
   // TODO : this should be a OpenQASM (5.0) token
-  [4, "OPENQASM"],
+  [5],
   [2, 2],
   [6],
   [4, "include"],
