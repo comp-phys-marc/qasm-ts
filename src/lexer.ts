@@ -245,8 +245,10 @@ class Lexer {
           this.readChar(3);
           return [Token.Gate];
         }
-        const literal = char + this.readIdentifier();
-        return [lookup(literal), literal];
+        {
+          const literal = char + this.readIdentifier();
+          return [lookup(literal), literal];
+        }
       case "q":
         if (
           this.input[this.cursor] == "r" &&
@@ -256,8 +258,10 @@ class Lexer {
           this.readChar(3);
           return [Token.QReg];
         }
-        const qregLit = char + this.readIdentifier();
-        return [lookup(qregLit), qregLit];
+        {
+          const qregLit = char + this.readIdentifier();
+          return [lookup(qregLit), qregLit];
+        }
       case "c":
         if (
           this.input[this.cursor] == "r" &&
@@ -267,8 +271,10 @@ class Lexer {
           this.readChar(3);
           return [Token.QReg];
         }
-        const cregLit = char + this.readIdentifier();
-        return [lookup(cregLit), cregLit];
+        {
+          const cregLit = char + this.readIdentifier();
+          return [lookup(cregLit), cregLit];
+        }
       case "b":
         if (
           this.input[this.cursor] == "a" &&
@@ -281,8 +287,10 @@ class Lexer {
           this.readChar(6);
           return [Token.Barrier];
         }
-        const barLit = char + this.readIdentifier();
-        return [lookup(barLit), barLit];
+        {
+          const barLit = char + this.readIdentifier();
+          return [lookup(barLit), barLit];
+        }
       case "m":
         if (
           this.input[this.cursor] == "e" &&
@@ -295,14 +303,18 @@ class Lexer {
           this.readChar(6);
           return [Token.Measure];
         }
-        const measureLit = char + this.readIdentifier();
-        return [lookup(measureLit), measureLit];
-      case '"':
+        {
+          const measureLit = char + this.readIdentifier();
+          return [lookup(measureLit), measureLit];
+        }
+      case '"': {
         const stringLiteral = char + this.readStringLiteral('"');
         return [Token.String, stringLiteral];
-      case "’":
+      }
+      case "’": {
         const singleStringLiteral = char + this.readStringLiteral("’");
         return [Token.String, singleStringLiteral];
+      }
       default:
         if (isLetter(char)) {
           const literal = char + this.readIdentifier();
