@@ -44,7 +44,7 @@ import {
 class Parser {
 
     /** The tokens to parse. */
-    tokens:Array<[Token, (number | String)?]>;
+    tokens:Array<[Token, (number | string)?]>;
 
     /** The allowed gates. */
     gates:Array<string>;
@@ -53,7 +53,7 @@ class Parser {
      * Creates a parser.
      * @param tokens - Tokens to parse.
      */
-    constructor(tokens:Array<[Token, (number | String)?]>) {
+    constructor(tokens:Array<[Token, (number | string)?]>) {
        this.tokens = tokens;
        this.gates = [
            'x',
@@ -111,7 +111,7 @@ class Parser {
         variable initializations or references.
     * @return A set of AST nodes.
     */
-    parseNode(tokens:Array<[Token, (number | String)?]>, allowVariables=false): Array<AstNode> {
+    parseNode(tokens:Array<[Token, (number | string)?]>, allowVariables=false): Array<AstNode> {
         const token = tokens[0];
         switch(token[0]) {
             case Token.QReg:
@@ -176,7 +176,7 @@ class Parser {
      * @param expectedTokens - Expected tokens.
      * @return Whether these is a match.
      */
-    matchNext(tokens:Array<[Token, (number | String)?]>, expectedTokens:Array<Token>): boolean {
+    matchNext(tokens:Array<[Token, (number | string)?]>, expectedTokens:Array<Token>): boolean {
         let matches = true;
         let i = 0;
         if (tokens.length == 0) {
@@ -197,7 +197,7 @@ class Parser {
      * @param tokens - Remaining tokens to parse.
      * @return An AST node representing the quantum register.
      */
-    qreg(tokens:Array<[Token, (number | String)?]>): AstNode {
+    qreg(tokens:Array<[Token, (number | string)?]>): AstNode {
         if (this.matchNext(tokens, [Token.Id, Token.LSParen, Token.NNInteger, Token.RSParen, Token.Semicolon])) {
             const id = tokens[0][1];
             const size = tokens[2][1];
@@ -212,7 +212,7 @@ class Parser {
      * @param tokens - Remaining tokens to parse.
      * @return An AST node representing the classical register.
      */
-    creg(tokens:Array<[Token, (number | String)?]>): AstNode {
+    creg(tokens:Array<[Token, (number | string)?]>): AstNode {
         if (this.matchNext(tokens, [Token.Id, Token.LSParen, Token.NNInteger,
             Token.RSParen, Token.Semicolon])) {
             const id = tokens[0][1];
@@ -228,7 +228,7 @@ class Parser {
      * @param tokens - Remaining tokens to parse.
      * @return An AST node representing the conditional.
      */
-    conditional(tokens:Array<[Token, (number | String)?]>): AstNode {
+    conditional(tokens:Array<[Token, (number | string)?]>): AstNode {
         if (this.matchNext(tokens, [Token.LParen, Token.Id, Token.Equals, Token.NNInteger, Token.RParen])) {
             let id = tokens[1][1];
             let val = tokens[3][1];
@@ -244,7 +244,7 @@ class Parser {
      * @param tokens - Remaining tokens to parse.
      * @return An AST node representing the barrier.
      */
-    barrier(tokens:Array<[Token, (number | String)?]>): AstNode {
+    barrier(tokens:Array<[Token, (number | string)?]>): AstNode {
         if (this.matchNext(tokens, [Token.Id, Token.Semicolon])) {
             let id = tokens[0][1];
             return new Barrier(id.toString());
@@ -263,7 +263,7 @@ class Parser {
      * @param tokens - Remaining tokens to parse.
      * @return An AST node representing the measurement.
      */
-    measure(tokens:Array<[Token, (number | String)?]>): AstNode {
+    measure(tokens:Array<[Token, (number | string)?]>): AstNode {
         let first_id:string;
         let second_id:string;
         let first_index:number;
@@ -303,7 +303,7 @@ class Parser {
      * @param tokens - Remaining tokens to parse.
      * @return An AST node representing the gate application.
      */
-    application(tokens:Array<[Token, (number | String)?]>, op:string): Array<AstNode> {
+    application(tokens:Array<[Token, (number | string)?]>, op:string): Array<AstNode> {
         let params:Array<AstNode> = [];
         let list:Array<[string, number?]> = [];
         let applications:Array<AstNode> = [];
@@ -343,7 +343,7 @@ class Parser {
      * @param tokens - Expression tokens to parse.
      * @return A parsed subroutine.
      */
-    sub(tokens:Array<[Token, (number | String)?]>): Array<AstNode> {
+    sub(tokens:Array<[Token, (number | string)?]>): Array<AstNode> {
         let ast:Array<AstNode> = [];
         let i = 0;
         if (this.matchNext(tokens.slice(i), [Token.LCParen])) {
@@ -371,7 +371,7 @@ class Parser {
      * @param tokens - Tokens to parse.
      * @return An AST node representing the parameter value.
      */
-    matchParam(tokens:Array<[Token, (number | String)?]>): AstNode {
+    matchParam(tokens:Array<[Token, (number | string)?]>): AstNode {
         let param:AstNode;
         if (!(notParam(tokens[0][0]))) {
             param = this.parseNode([tokens[0]], true);
@@ -386,7 +386,7 @@ class Parser {
      * @param tokens - Tokens to parse.
      * @return An array of AST nodes representing the parameter values.
      */
-    matchParamList(tokens:Array<[Token, (number | String)?]>): Array<Array<AstNode>> {
+    matchParamList(tokens:Array<[Token, (number | string)?]>): Array<Array<AstNode>> {
         let args:Array<Array<AstNode>> = [];
         let i:number = 0;
         let j:number = 0;
@@ -416,7 +416,7 @@ class Parser {
      * @param tokens - Tokens to parse.
      * @return An AST node representing the argument value.
      */
-    matchArg(tokens:Array<[Token, (number | String)?]>): number {
+    matchArg(tokens:Array<[Token, (number | string)?]>): number {
         let index:number;
         if (this.matchNext(tokens, [Token.LSParen])) {
             tokens = tokens.slice(1);
@@ -439,7 +439,7 @@ class Parser {
      * @param tokens - Tokens to parse.
      * @return An array of AST nodes representing the argument values.
      */
-    matchArgList(tokens:Array<[Token, (number | String)?]>): Array<[string,number?]> {
+    matchArgList(tokens:Array<[Token, (number | string)?]>): Array<[string,number?]> {
         let args:Array<[string, number?]> = [];
         let next:[string, number?];
         let id:string;
@@ -470,7 +470,7 @@ class Parser {
      * @param tokens - Tokens to parse.
      * @return An array of AST nodes representing the identifiers.
      */
-    matchIdList(tokens:Array<[Token, (number | String)?]>): Array<string> {
+    matchIdList(tokens:Array<[Token, (number | string)?]>): Array<string> {
         let args:Array<string> = [];
         let head:string;
         if (this.matchNext(tokens, [Token.Id])) {
@@ -491,7 +491,7 @@ class Parser {
      * @param tokens - Remaining tokens to parse.
      * @return An AST node representing the gate.
      */
-    gate(tokens:Array<[Token, (number | String)?]>): AstNode {
+    gate(tokens:Array<[Token, (number | string)?]>): AstNode {
         let name:string;
         let params:Array<string>;
         let registers:Array<string>;
