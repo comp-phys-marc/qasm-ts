@@ -1,5 +1,12 @@
 import { Token, lookup } from "./token";
-import { BadEqualsError, MissingSemicolonError } from "./errors";
+import {
+  BadEqualsError,
+  MissingSemicolonError,
+  UnsupportedOpenQASMVersionError,
+} from "./errors";
+
+/** Type representing the major OpenQASM versions. */
+type OpenQASMVersion = 2 | 3;
 
 /**
  * Returns whether a given character could be an element of a numeric value.
@@ -53,6 +60,8 @@ class Lexer {
   input: string;
   /** The lexer's current cursor location. */
   cursor: number;
+  /** The OpenQASM version. */
+  version: OpenQASMVersion;
   /**
    * Creates a lexer.
    * @param input - The string to lex.
@@ -61,6 +70,8 @@ class Lexer {
   constructor(input: string, cursor: number = 0) {
     this.input = input;
     this.cursor = cursor;
+    // Default to OpenQASM 3.0.
+    this.version = 3;
   }
   verifyInput = (): boolean => {
     const lines = this.input.split(/\n|\r(?!\n)|\u2028|\u2029|\r\n/g);
@@ -168,6 +179,9 @@ class Lexer {
     return lit;
   };
 
+  // TODO : Should this method check if its reached the end of the file?
+  // In that case would return a boolean value. Prevents users of the method
+  // to have to do their own checking on the cursor.
   /**
    * Advances the cusor past the next block of whitespace.
    */
@@ -321,6 +335,35 @@ class Lexer {
           this.input[this.cursor + 5] == "S" &&
           this.input[this.cursor + 6] == "M"
         ) {
+          let offset = 7;
+          while (
+            this.cursor + offset < this.input.length &&
+            " \t\n\r\v".indexOf(this.input[this.cursor + offset]) > -1
+          ) {
+            offset++;
+          }
+          let versionString = "";
+          while (
+            this.cursor + offset < this.input.length &&
+            isNumeric(this.input[this.cursor + offset])
+          ) {
+            versionString += this.input[this.cursor + offset];
+            offset++;
+          }
+
+          if (versionString) {
+            const versionNumber = parseFloat(versionString);
+            if (versionNumber >= 2 && versionNumber < 3) {
+              this.version = 2;
+            } else if (versionNumber >= 3 && versionNumber < 4) {
+              this.version = 3;
+            } else {
+              throw new UnsupportedOpenQASMVersionError(
+                `Unsupported OpenQASM version: ${versionString}`,
+              );
+            }
+          }
+
           this.readChar(7);
           return [Token.OpenQASM];
         }
