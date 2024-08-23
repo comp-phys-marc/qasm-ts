@@ -338,7 +338,7 @@ class Lexer {
           let offset = 7;
           while (
             this.cursor + offset < this.input.length &&
-            " \t\n\r\v".indexOf(this.input[this.cursor + offset]) > -1
+            " \t".indexOf(this.input[this.cursor + offset]) > -1
           ) {
             offset++;
           }
