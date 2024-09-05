@@ -10,7 +10,6 @@ enum Token {
   // 4; identifier (variables names, function names, etc.)
   Id,
   // 5; OPENQASM version declaration
-  // TODO : right now the version declaration is lexed as an identifier token
   OpenQASM,
   // 6; semicolon to terminate statements
   Semicolon,
