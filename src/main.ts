@@ -10,7 +10,7 @@ import * as fs from "fs";
 export function parseString(qasm: string) {
   const lexer = new Lexer(qasm, 0);
   const tokens = lexer.lex();
-  const parser = new Parser(tokens);
+  const parser = new Parser(tokens, lexer.version);
   const ast = parser.parse();
   return ast;
 }
