@@ -4,9 +4,7 @@ import {
   MissingSemicolonError,
   UnsupportedOpenQASMVersionError,
 } from "./errors";
-
-/** Type representing the major OpenQASM versions. */
-type OpenQASMVersion = 2 | 3;
+import { OpenQASMMajorVersion, OpenQASMVersion } from "./version";
 
 /**
  * Returns whether a given character could be an element of a numeric value.
@@ -71,7 +69,7 @@ class Lexer {
     this.input = input;
     this.cursor = cursor;
     // Default to OpenQASM 3.0.
-    this.version = 3;
+    this.version = new OpenQASMVersion(OpenQASMMajorVersion.Version3);
   }
   verifyInput = (): boolean => {
     const lines = this.input.split(/\n|\r(?!\n)|\u2028|\u2029|\r\n/g);
@@ -342,26 +340,49 @@ class Lexer {
           ) {
             offset++;
           }
-          let versionString = "";
+
+          // Read the major version
+          let majorVersion = "";
           while (
             this.cursor + offset < this.input.length &&
             isNumeric(this.input[this.cursor + offset])
           ) {
-            versionString += this.input[this.cursor + offset];
+            majorVersion += this.input[this.cursor + offset];
             offset++;
           }
 
-          if (versionString) {
-            const versionNumber = parseFloat(versionString);
-            if (versionNumber >= 2 && versionNumber < 3) {
-              this.version = 2;
-            } else if (versionNumber >= 3 && versionNumber < 4) {
-              this.version = 3;
-            } else {
-              throw new UnsupportedOpenQASMVersionError(
-                `Unsupported OpenQASM version: ${versionString}`,
-              );
+          // Attempt to read the minor version
+          let minorVersion: string | undefined = undefined;
+          if (this.input[this.cursor + offset] == ".") {
+            offset++;
+            minorVersion = "";
+            while (
+              this.cursor + offset < this.input.length &&
+              isNumeric(this.input[this.cursor + offset])
+            ) {
+              minorVersion += this.input[this.cursor + offset];
+              offset++;
             }
+          }
+
+          // Parse major and minor versions
+          const major = parseInt(majorVersion, 10);
+          const minor = minorVersion ? parseInt(minorVersion, 10) : undefined;
+
+          if (major == 2) {
+            this.version = new OpenQASMVersion(
+              OpenQASMMajorVersion.Version2,
+              minor,
+            );
+          } else if (major == 3) {
+            this.version = new OpenQASMVersion(
+              OpenQASMMajorVersion.Version3,
+              minor,
+            );
+          } else {
+            throw new UnsupportedOpenQASMVersionError(
+              `Unsupported OpenQASM version: ${majorVersion}.${minor ?? 0}`,
+            );
           }
 
           this.readChar(7);
