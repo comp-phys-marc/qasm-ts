@@ -1,4 +1,5 @@
 import { Token, notParam } from "./token";
+import { OpenQASMVersion, OpenQASMMajorVersion } from "./version";
 
 import {
   BadArgumentError,
@@ -45,11 +46,15 @@ class Parser {
   /** The allowed gates. */
   gates: Array<string>;
 
+  /** The OpenQASM version. */
+  version: OpenQASMVersion;
+
   /**
    * Creates a parser.
    * @param tokens - Tokens to parse.
+   * @param version - The OpenQASM version (optional).
    */
-  constructor(tokens: Array<[Token, (number | string)?]>) {
+  constructor(tokens: Array<[Token, (number | string)?]>, version?: OpenQASMVersion) {
     this.tokens = tokens;
     this.gates = [
       "x",
@@ -72,6 +77,7 @@ class Parser {
       "ccy",
       "ccz",
     ];
+    this.version = version ? version : new OpenQASMVersion(OpenQASMMajorVersion.Version3);
   }
 
   /**
@@ -373,7 +379,7 @@ class Parser {
           commas += 1;
           // TODO : should probably look into this, params is an array of
           // AstNode's (not a two dimensional array) so this inner loop
-          // will never go past `j = 0` and commas will always equal commas?
+          // will never go past `j = 0` and commas will always equal count?
           // The `tokens = tokens.slice` line below could just be done with
           // one of the variables (I think)? Not sure if there are edge cases
           // I am failing to take into account.
