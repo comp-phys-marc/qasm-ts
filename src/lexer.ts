@@ -3,6 +3,10 @@ import {
   BadEqualsError,
   MissingSemicolonError,
   UnsupportedOpenQASMVersionError,
+  BadGateError,
+  BadQregError,
+  BadCregError,
+  ReturnErrorConstructor,
 } from "./errors";
 import { OpenQASMMajorVersion, OpenQASMVersion } from "./version";
 
@@ -18,14 +22,36 @@ function isNumeric(c: string): boolean {
 /**
  * Returns whether a given character is a letter.
  * @param c - The character.
+ * @param matchCase - Whether to check for a letter that is upper case, lower case, or either. (optional)
  * @return Whether the character is a letter.
  */
-function isLetter(c: string): boolean {
-  if (c.match(/[a-z]/i)) {
-    return true;
+function isLetter(c: string, matchCase?: "upper" | "lower"): boolean {
+  switch (matchCase) {
+    case "upper":
+      return /^[A-Z]$/.test(c);
+    case "lower":
+      return /^[a-z]$/.test(c);
+    default:
+      return /^[A-Za-z]$/.test(c);
   }
+}
 
-  return false;
+/**
+ * Returns whether a given character is unicode.
+ * @param c - The character.
+ * @param excludePi - Whether to exclude the Pi symbol from consideration.
+ * @return - Whether the given character is valid unicode.
+ */
+function isUnicode(c: string, excludePi?: boolean): boolean {
+  const isBasicUnicode = /^\u0000-\u00ff/.test(c);
+  switch (excludePi) {
+    case true:
+      return isBasicUnicode && c !== "\u03C0";
+    case false:
+      return isBasicUnicode;
+    default:
+      return isBasicUnicode;
+  }
 }
 
 /**
@@ -34,10 +60,26 @@ function isLetter(c: string): boolean {
  * @return Whether the character is alphanumeric.
  */
 function isAlpha(c: string): boolean {
-  if (c.match(/^[0-9a-zA-Z]+$/)) {
-    return true;
+  return /^[0-9a-zA-Z]+$/.test(c);
+}
+
+/**
+ * Returns whether a token is register or gate.
+ *
+ * @param token - The token.
+ * @return Whether the token is a register or gate and the corresponding eror constructor or null if not applicable.
+ */
+function isRegGate(token: Token): [boolean, ReturnErrorConstructor | null] {
+  switch (token) {
+    case Token.Gate:
+      return [true, BadGateError];
+    case Token.QReg:
+      return [true, BadQregError];
+    case Token.CReg:
+      return [true, BadCregError];
+    default:
+      return [false, null];
   }
-  return false;
 }
 
 /**
@@ -46,10 +88,7 @@ function isAlpha(c: string): boolean {
  * @return Whether the character is a newline.
  */
 function isNewline(c: string): boolean {
-  if (c.match(/\n|\r(?!\n)|\u2028|\u2029|\r\n/g)) {
-    return true;
-  }
-  return false;
+  return /\n|\r(?!\n)|\u2028|\u2029|\r\n/.test(c);
 }
 
 /** Class representing a lexer. */
@@ -93,14 +132,16 @@ class Lexer {
    */
   lex = (): Array<[Token, (number | string)?]> => {
     const tokens: Array<[Token, (number | string)?]> = [];
+    let lastToken: Token | null = null;
     let token: [Token, (number | string)?];
     if (!this.verifyInput()) {
       throw MissingSemicolonError;
     }
     while (this.cursor < this.input.length) {
-      token = this.nextToken();
+      token = this.nextToken(lastToken);
       if (token) {
         tokens.push(token);
+        lastToken = token[0];
       }
     }
     return tokens;
@@ -152,10 +193,35 @@ class Lexer {
 
   /**
    * Reads an identifier.
+   * @param lastToken - The previous lexed token.
    * @return The identifier as a string.
    */
-  readIdentifier = (): string => {
+  readIdentifier = (lastToken: Token | null): string => {
     let id = "";
+    const next = this.peek();
+    const [register_or_gate, error] = isRegGate(lastToken);
+
+    if (register_or_gate) {
+      switch (this.version.major) {
+        case OpenQASMMajorVersion.Version2:
+          // OpenQASM 2 enforces register and gate names to begin with a lowercase alphabetical character.
+          if (!isLetter(next, "lower")) {
+            throw new error(
+              `Identifier '${next}' must start with a lowercase letter in OpenQASM 2.`,
+            );
+          }
+          break;
+        case OpenQASMMajorVersion.Version3:
+          // OpenQASM 3 allows for other unicode characters (except for the pi symbol), underscores, and upper case characters to begin register and gate names.
+          if (!(isLetter(next) || isUnicode(next, true) || next == "_")) {
+            throw new error(
+              `Identifier '${next}' must start with a lowercase, uppercase, unicode (excluding Pi), or underscore character in OpenQASM 3.`,
+            );
+          }
+          break;
+      }
+    }
+
     while (isAlpha(this.peek())) {
       id += this.readChar();
     }
@@ -192,9 +258,10 @@ class Lexer {
 
   /**
    * Lexes the next token.
+   * @param lastToken - The last token lexed.
    * @return The next token and its corresponding value.
    */
-  nextToken = (): [Token, (number | string)?] => {
+  nextToken = (lastToken: Token | null): [Token, (number | string)?] => {
     this.skipWhitespace();
 
     if (this.cursor == this.input.length) {
@@ -258,7 +325,7 @@ class Lexer {
           return [Token.Gate];
         }
         {
-          const literal = char + this.readIdentifier();
+          const literal = char + this.readIdentifier(lastToken);
           return [lookup(literal), literal];
         }
       case "q":
@@ -271,7 +338,7 @@ class Lexer {
           return [Token.QReg];
         }
         {
-          const qregLit = char + this.readIdentifier();
+          const qregLit = char + this.readIdentifier(lastToken);
           return [lookup(qregLit), qregLit];
         }
       case "c":
@@ -284,7 +351,7 @@ class Lexer {
           return [Token.QReg];
         }
         {
-          const cregLit = char + this.readIdentifier();
+          const cregLit = char + this.readIdentifier(lastToken);
           return [lookup(cregLit), cregLit];
         }
       case "b":
@@ -300,7 +367,7 @@ class Lexer {
           return [Token.Barrier];
         }
         {
-          const barLit = char + this.readIdentifier();
+          const barLit = char + this.readIdentifier(lastToken);
           return [lookup(barLit), barLit];
         }
       case "m":
@@ -316,7 +383,7 @@ class Lexer {
           return [Token.Measure];
         }
         {
-          const measureLit = char + this.readIdentifier();
+          const measureLit = char + this.readIdentifier(lastToken);
           return [lookup(measureLit), measureLit];
         }
       // Both version string formats like `OPENQASM` and `OpenQASM` are supported. This is because the OpenQASM 3.0 documentation
@@ -389,7 +456,7 @@ class Lexer {
           return [Token.OpenQASM];
         }
         {
-          const openQasmLit = char + this.readIdentifier();
+          const openQasmLit = char + this.readIdentifier(lastToken);
           return [lookup[openQasmLit], openQasmLit];
         }
       case '"': {
@@ -402,7 +469,7 @@ class Lexer {
       }
       default:
         if (isLetter(char)) {
-          const literal = char + this.readIdentifier();
+          const literal = char + this.readIdentifier(lastToken);
           return [lookup(literal), literal];
         } else if (isNumeric(char)) {
           const num = char + this.readNumeric();
