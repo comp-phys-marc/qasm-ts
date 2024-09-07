@@ -97,6 +97,9 @@ class UnsupportedOpenQASMVersionError extends Error {
   }
 }
 
+/** Type for returning an error constructor. */
+type ReturnErrorConstructor = new (message?: string) => Error;
+
 export {
   BadArgumentError,
   BadCregError,
@@ -109,4 +112,5 @@ export {
   BadParameterError,
   MissingSemicolonError,
   UnsupportedOpenQASMVersionError,
+  ReturnErrorConstructor,
 };
