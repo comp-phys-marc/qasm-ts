@@ -13,11 +13,11 @@ class OpenQASMVersion {
 
   /**
    * Creates an OpenQASMVersion instance.
-   * @param major - The OpenQASM major version.
+   * @param major - The OpenQASM major version. (optional)
    * @param minor - The OpenQASM minor version (optional).
    */
-  constructor(major: OpenQASMMajorVersion, minor?: number) {
-    this.major = major;
+  constructor(major?: OpenQASMMajorVersion, minor?: number) {
+    this.major = major ? major : OpenQASMMajorVersion.Version3;
     this.minor = minor ? minor : 0;
   }
 
