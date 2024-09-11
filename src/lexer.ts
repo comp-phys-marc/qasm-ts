@@ -6,9 +6,18 @@ import {
   BadGateError,
   BadQregError,
   BadCregError,
-  ReturnErrorConstructor,
 } from "./errors";
 import { OpenQASMMajorVersion, OpenQASMVersion } from "./version";
+
+/**
+ * State enum to enforce register and gate identifier constraints.
+ */
+enum InRegisterDeclarationState {
+  Qreg,
+  Creg,
+  Gate,
+  None,
+}
 
 /**
  * Returns whether a given character could be an element of a numeric value.
@@ -64,25 +73,6 @@ function isAlpha(c: string): boolean {
 }
 
 /**
- * Returns whether a token is register or gate.
- *
- * @param token - The token.
- * @return Whether the token is a register or gate and the corresponding eror constructor or null if not applicable.
- */
-function isRegGate(token: Token): [boolean, ReturnErrorConstructor | null] {
-  switch (token) {
-    case Token.Gate:
-      return [true, BadGateError];
-    case Token.QReg:
-      return [true, BadQregError];
-    case Token.CReg:
-      return [true, BadCregError];
-    default:
-      return [false, null];
-  }
-}
-
-/**
  * Returns whether a given character is a newline character.
  * @param c - The character.
  * @return Whether the character is a newline.
@@ -99,6 +89,9 @@ class Lexer {
   cursor: number;
   /** The OpenQASM version. */
   version: OpenQASMVersion;
+  /** Private state variable for tracking register and gate declarations. */
+  private inRegisterDeclaration: InRegisterDeclarationState =
+    InRegisterDeclarationState.None;
   /**
    * Creates a lexer.
    * @param input - The string to lex.
@@ -132,16 +125,14 @@ class Lexer {
    */
   lex = (): Array<[Token, (number | string)?]> => {
     const tokens: Array<[Token, (number | string)?]> = [];
-    let lastToken: Token | null = null;
     let token: [Token, (number | string)?];
     if (!this.verifyInput()) {
       throw MissingSemicolonError;
     }
     while (this.cursor < this.input.length) {
-      token = this.nextToken(lastToken);
+      token = this.nextToken();
       if (token) {
         tokens.push(token);
-        lastToken = token[0];
       }
     }
     return tokens;
@@ -193,30 +184,50 @@ class Lexer {
 
   /**
    * Reads an identifier.
-   * @param lastToken - The previous lexed token.
    * @return The identifier as a string.
    */
-  readIdentifier = (lastToken: Token | null): string => {
+  readIdentifier = (): string => {
     let id = "";
     const next = this.peek();
-    const [register_or_gate, error] = isRegGate(lastToken);
 
-    if (register_or_gate) {
+    if (this.inRegisterDeclaration != InRegisterDeclarationState.None) {
       switch (this.version.major) {
         case OpenQASMMajorVersion.Version2:
           // OpenQASM 2 enforces register and gate names to begin with a lowercase alphabetical character.
           if (!isLetter(next, "lower")) {
-            throw new error(
-              `Identifier '${next}' must start with a lowercase letter in OpenQASM 2.`,
-            );
+            switch (this.inRegisterDeclaration) {
+              case InRegisterDeclarationState.Qreg:
+                throw new BadQregError(
+                  "QReg identifier must start with a lowercase letter in OpenQASM 2.",
+                );
+              case InRegisterDeclarationState.Creg:
+                throw new BadCregError(
+                  "CReg identifier must start with a lowercase letter in OpenQASM 2.",
+                );
+              case InRegisterDeclarationState.Gate:
+                throw new BadGateError(
+                  "Gate identifier must start with a lowercase letter in OpenQASM 2.",
+                );
+            }
           }
           break;
         case OpenQASMMajorVersion.Version3:
           // OpenQASM 3 allows for other unicode characters (except for the pi symbol), underscores, and upper case characters to begin register and gate names.
           if (!(isLetter(next) || isUnicode(next, true) || next == "_")) {
-            throw new error(
-              `Identifier '${next}' must start with a lowercase, uppercase, unicode (excluding Pi), or underscore character in OpenQASM 3.`,
-            );
+            switch (this.inRegisterDeclaration) {
+              case InRegisterDeclarationState.Qreg:
+                throw new BadQregError(
+                  "QReg identifiers must start with a lowercase, uppercase, unicode (excluding Pi), or underscore character in OpenQASM 3.",
+                );
+              case InRegisterDeclarationState.Creg:
+                throw new BadCregError(
+                  "CReg identifiers must start with a lowercase, uppercase, unicode (excluding Pi), or underscore character in OpenQASM 3.",
+                );
+              case InRegisterDeclarationState.Gate:
+                throw new BadGateError(
+                  "Gate identifiers must start with a lowercase, uppercase, unicode (excluding Pi), or underscore character in OpenQASM 3.",
+                );
+            }
           }
           break;
       }
@@ -258,10 +269,9 @@ class Lexer {
 
   /**
    * Lexes the next token.
-   * @param lastToken - The last token lexed.
    * @return The next token and its corresponding value.
    */
-  nextToken = (lastToken: Token | null): [Token, (number | string)?] => {
+  nextToken = (): [Token, (number | string)?] => {
     this.skipWhitespace();
 
     if (this.cursor == this.input.length) {
@@ -293,6 +303,7 @@ class Lexer {
       case "^":
         return [Token.Power];
       case ";":
+        this.inRegisterDeclaration = InRegisterDeclarationState.None;
         return [Token.Semicolon];
       case ",":
         return [Token.Comma];
@@ -325,7 +336,7 @@ class Lexer {
           return [Token.Gate];
         }
         {
-          const literal = char + this.readIdentifier(lastToken);
+          const literal = char + this.readIdentifier();
           return [lookup(literal), literal];
         }
       case "q":
@@ -335,10 +346,26 @@ class Lexer {
           this.input[this.cursor + 2] == "g"
         ) {
           this.readChar(3);
+          this.inRegisterDeclaration = InRegisterDeclarationState.Qreg;
+          return [Token.QReg];
+        } else if (
+          this.input[this.cursor] == "u" &&
+          this.input[this.cursor + 1] == "u" &&
+          this.input[this.cursor + 2] == "b" &&
+          this.input[this.cursor + 3] == "i" &&
+          this.input[this.cursor + 4] == "t"
+        ) {
+          if (this.version.major != OpenQASMMajorVersion.Version3) {
+            throw new BadQregError(
+              "`qubit` keyword is not supported in OpenQASM 2.0",
+            );
+          }
+          this.readChar(4);
+          this.inRegisterDeclaration = InRegisterDeclarationState.Qreg;
           return [Token.QReg];
         }
         {
-          const qregLit = char + this.readIdentifier(lastToken);
+          const qregLit = char + this.readIdentifier();
           return [lookup(qregLit), qregLit];
         }
       case "c":
@@ -348,10 +375,11 @@ class Lexer {
           this.input[this.cursor + 2] == "g"
         ) {
           this.readChar(3);
+          this.inRegisterDeclaration = InRegisterDeclarationState.Creg;
           return [Token.QReg];
         }
         {
-          const cregLit = char + this.readIdentifier(lastToken);
+          const cregLit = char + this.readIdentifier();
           return [lookup(cregLit), cregLit];
         }
       case "b":
@@ -365,9 +393,21 @@ class Lexer {
         ) {
           this.readChar(6);
           return [Token.Barrier];
+        } else if (
+          this.input[this.cursor] == "i" &&
+          this.input[this.cursor + 1] == "t"
+        ) {
+          if (this.version.major != OpenQASMMajorVersion.Version3) {
+            throw new BadCregError(
+              "`bit` keyword is not supported in OpenQASM 2.0",
+            );
+          }
+          this.readChar(4);
+          this.inRegisterDeclaration = InRegisterDeclarationState.Creg;
+          return [Token.CReg];
         }
         {
-          const barLit = char + this.readIdentifier(lastToken);
+          const barLit = char + this.readIdentifier();
           return [lookup(barLit), barLit];
         }
       case "m":
@@ -383,7 +423,7 @@ class Lexer {
           return [Token.Measure];
         }
         {
-          const measureLit = char + this.readIdentifier(lastToken);
+          const measureLit = char + this.readIdentifier();
           return [lookup(measureLit), measureLit];
         }
       // Both version string formats like `OPENQASM` and `OpenQASM` are supported. This is because the OpenQASM 3.0 documentation
@@ -456,7 +496,7 @@ class Lexer {
           return [Token.OpenQASM];
         }
         {
-          const openQasmLit = char + this.readIdentifier(lastToken);
+          const openQasmLit = char + this.readIdentifier();
           return [lookup[openQasmLit], openQasmLit];
         }
       case '"': {
@@ -469,7 +509,7 @@ class Lexer {
       }
       default:
         if (isLetter(char)) {
-          const literal = char + this.readIdentifier(lastToken);
+          const literal = char + this.readIdentifier();
           return [lookup(literal), literal];
         } else if (isNumeric(char)) {
           const num = char + this.readNumeric();
