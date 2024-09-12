@@ -54,7 +54,10 @@ class Parser {
    * @param tokens - Tokens to parse.
    * @param version - The OpenQASM version (optional).
    */
-  constructor(tokens: Array<[Token, (number | string)?]>, version?: OpenQASMVersion) {
+  constructor(
+    tokens: Array<[Token, (number | string)?]>,
+    version?: OpenQASMVersion,
+  ) {
     this.tokens = tokens;
     this.gates = [
       "x",
@@ -77,7 +80,7 @@ class Parser {
       "ccy",
       "ccz",
     ];
-    this.version = version ? version : new OpenQASMVersion(OpenQASMMajorVersion.Version3);
+    this.version = version ? version : new OpenQASMVersion();
   }
 
   /**
@@ -119,8 +122,12 @@ class Parser {
     switch (token[0]) {
       case Token.QReg:
         return [this.qreg(tokens.slice(1))];
+      case Token.Qubit:
+        return [this.qubit(tokens.slice(1))];
       case Token.CReg:
         return [this.creg(tokens.slice(1))];
+      case Token.Bit:
+        return [this.bit(tokens.slice(1))];
       case Token.Barrier:
         return [this.barrier(tokens.slice(1))];
       case Token.Measure:
@@ -215,9 +222,38 @@ class Parser {
         Token.Semicolon,
       ])
     ) {
-      const id = tokens[0][1];
+      const id = tokens[0][1].toString();
+      if (!this.validateIdentifier(id)) {
+        throw BadQregError;
+      }
       const size = tokens[2][1];
       return new QReg(id.toString(), Number(size));
+    } else {
+      throw BadQregError;
+    }
+  }
+
+  /**
+   * Parses the new preferred syntax for a quantum register (OpenQASM 3).
+   * @param tokens - Remaining tokens to parse.
+   * @return An AST node representing the quantum register.
+   */
+  qubit(tokens: Array<[Token, (number | string)?]>): AstNode {
+    if (
+      this.matchNext(tokens, [
+        Token.LSParen,
+        Token.NNInteger,
+        Token.RSParen,
+        Token.Id,
+        Token.Semicolon,
+      ])
+    ) {
+      const size = tokens[1][1];
+      const id = tokens[3][1].toString();
+      if (!this.validateIdentifier(id)) {
+        throw BadQregError;
+      }
+      return new QReg(id, Number(size));
     } else {
       throw BadQregError;
     }
@@ -238,9 +274,38 @@ class Parser {
         Token.Semicolon,
       ])
     ) {
-      const id = tokens[0][1];
+      const id = tokens[0][1].toString();
+      if (!this.validateIdentifier(id)) {
+        throw BadCregError;
+      }
       const size = tokens[2][1];
       return new CReg(id.toString(), Number(size));
+    } else {
+      throw BadCregError;
+    }
+  }
+
+  /**
+   * Parses the new preferred syntax for a classical register (OpenQASM 3).
+   * @param tokens - Remaining tokens to parse.
+   * @return An AST node representing the classical register.
+   */
+  bit(tokens: Array<[Token, (number | string)?]>): AstNode {
+    if (
+      this.matchNext(tokens, [
+        Token.LSParen,
+        Token.NNInteger,
+        Token.RSParen,
+        Token.Id,
+        Token.Semicolon,
+      ])
+    ) {
+      const size = tokens[1][1];
+      const id = tokens[3][1].toString();
+      if (!this.validateIdentifier(id)) {
+        throw BadCregError;
+      }
+      return new CReg(id, Number(size));
     } else {
       throw BadCregError;
     }
@@ -377,12 +442,6 @@ class Parser {
         let commas = 0;
         for (const i in params) {
           commas += 1;
-          // TODO : should probably look into this, params is an array of
-          // AstNode's (not a two dimensional array) so this inner loop
-          // will never go past `j = 0` and commas will always equal count?
-          // The `tokens = tokens.slice` line below could just be done with
-          // one of the variables (I think)? Not sure if there are edge cases
-          // I am failing to take into account.
           for (const j in params[i]) {
             count++;
           }
@@ -566,6 +625,9 @@ class Parser {
     let params: Array<string>;
     if (this.matchNext(tokens, [Token.Id])) {
       name = tokens[0][1].toString();
+      if (!this.validateIdentifier(name)) {
+        throw BadGateError;
+      }
     } else {
       throw BadGateError;
     }
@@ -587,6 +649,20 @@ class Parser {
     const applications: Array<AstNode> = this.sub(tokens);
     this.gates.push(name);
     return new Gate(name, registers, params, applications);
+  }
+
+  /**
+   * Validates whether a register or gate identifier based on the OpenQASM version.
+   * @param identifier - The identifier to validate.
+   * @return Boolean indicating successful validation or not.
+   */
+  private validateIdentifier(identifier: string): boolean {
+    const firstChar = identifier[0];
+    if (this.version.major === OpenQASMMajorVersion.Version2) {
+      return /^[a-z]$/.test(firstChar);
+    } else {
+      return /^[a-zA-Z_\u0080-\uFFFF]$/.test(firstChar) && identifier !== "π";
+    }
   }
 }
 

@@ -3,21 +3,8 @@ import {
   BadEqualsError,
   MissingSemicolonError,
   UnsupportedOpenQASMVersionError,
-  BadGateError,
-  BadQregError,
-  BadCregError,
 } from "./errors";
 import { OpenQASMMajorVersion, OpenQASMVersion } from "./version";
-
-/**
- * State enum to enforce register and gate identifier constraints.
- */
-enum InRegisterDeclarationState {
-  Qreg,
-  Creg,
-  Gate,
-  None,
-}
 
 /**
  * Returns whether a given character could be an element of a numeric value.
@@ -89,9 +76,6 @@ class Lexer {
   cursor: number;
   /** The OpenQASM version. */
   version: OpenQASMVersion;
-  /** Private state variable for tracking register and gate declarations. */
-  private inRegisterDeclaration: InRegisterDeclarationState =
-    InRegisterDeclarationState.None;
   /**
    * Creates a lexer.
    * @param input - The string to lex.
@@ -188,53 +172,10 @@ class Lexer {
    */
   readIdentifier = (): string => {
     let id = "";
-    const next = this.peek();
-
-    if (this.inRegisterDeclaration != InRegisterDeclarationState.None) {
-      switch (this.version.major) {
-        case OpenQASMMajorVersion.Version2:
-          // OpenQASM 2 enforces register and gate names to begin with a lowercase alphabetical character.
-          if (!isLetter(next, "lower")) {
-            switch (this.inRegisterDeclaration) {
-              case InRegisterDeclarationState.Qreg:
-                throw new BadQregError(
-                  "QReg identifier must start with a lowercase letter in OpenQASM 2.",
-                );
-              case InRegisterDeclarationState.Creg:
-                throw new BadCregError(
-                  "CReg identifier must start with a lowercase letter in OpenQASM 2.",
-                );
-              case InRegisterDeclarationState.Gate:
-                throw new BadGateError(
-                  "Gate identifier must start with a lowercase letter in OpenQASM 2.",
-                );
-            }
-          }
-          break;
-        case OpenQASMMajorVersion.Version3:
-          // OpenQASM 3 allows for other unicode characters (except for the pi symbol), underscores, and upper case characters to begin register and gate names.
-          if (!(isLetter(next) || isUnicode(next, true) || next == "_")) {
-            switch (this.inRegisterDeclaration) {
-              case InRegisterDeclarationState.Qreg:
-                throw new BadQregError(
-                  "QReg identifiers must start with a lowercase, uppercase, unicode (excluding Pi), or underscore character in OpenQASM 3.",
-                );
-              case InRegisterDeclarationState.Creg:
-                throw new BadCregError(
-                  "CReg identifiers must start with a lowercase, uppercase, unicode (excluding Pi), or underscore character in OpenQASM 3.",
-                );
-              case InRegisterDeclarationState.Gate:
-                throw new BadGateError(
-                  "Gate identifiers must start with a lowercase, uppercase, unicode (excluding Pi), or underscore character in OpenQASM 3.",
-                );
-            }
-          }
-          break;
-      }
-    }
-
-    while (isAlpha(this.peek())) {
+    let next = this.peek();
+    while (isAlpha(next) || next == "_" || isUnicode(next)) {
       id += this.readChar();
+      next = this.peek();
     }
     return id;
   };
@@ -303,7 +244,6 @@ class Lexer {
       case "^":
         return [Token.Power];
       case ";":
-        this.inRegisterDeclaration = InRegisterDeclarationState.None;
         return [Token.Semicolon];
       case ",":
         return [Token.Comma];
@@ -346,23 +286,16 @@ class Lexer {
           this.input[this.cursor + 2] == "g"
         ) {
           this.readChar(3);
-          this.inRegisterDeclaration = InRegisterDeclarationState.Qreg;
           return [Token.QReg];
         } else if (
+          this.version.major === OpenQASMMajorVersion.Version3 &&
           this.input[this.cursor] == "u" &&
-          this.input[this.cursor + 1] == "u" &&
-          this.input[this.cursor + 2] == "b" &&
-          this.input[this.cursor + 3] == "i" &&
-          this.input[this.cursor + 4] == "t"
+          this.input[this.cursor + 1] == "b" &&
+          this.input[this.cursor + 2] == "i" &&
+          this.input[this.cursor + 3] == "t"
         ) {
-          if (this.version.major != OpenQASMMajorVersion.Version3) {
-            throw new BadQregError(
-              "`qubit` keyword is not supported in OpenQASM 2.0",
-            );
-          }
           this.readChar(4);
-          this.inRegisterDeclaration = InRegisterDeclarationState.Qreg;
-          return [Token.QReg];
+          return [Token.Qubit];
         }
         {
           const qregLit = char + this.readIdentifier();
@@ -375,8 +308,7 @@ class Lexer {
           this.input[this.cursor + 2] == "g"
         ) {
           this.readChar(3);
-          this.inRegisterDeclaration = InRegisterDeclarationState.Creg;
-          return [Token.QReg];
+          return [Token.CReg];
         }
         {
           const cregLit = char + this.readIdentifier();
@@ -394,17 +326,12 @@ class Lexer {
           this.readChar(6);
           return [Token.Barrier];
         } else if (
+          this.version.major === OpenQASMMajorVersion.Version3 &&
           this.input[this.cursor] == "i" &&
           this.input[this.cursor + 1] == "t"
         ) {
-          if (this.version.major != OpenQASMMajorVersion.Version3) {
-            throw new BadCregError(
-              "`bit` keyword is not supported in OpenQASM 2.0",
-            );
-          }
-          this.readChar(4);
-          this.inRegisterDeclaration = InRegisterDeclarationState.Creg;
-          return [Token.CReg];
+          this.readChar(2);
+          return [Token.Bit];
         }
         {
           const barLit = char + this.readIdentifier();
@@ -492,7 +419,7 @@ class Lexer {
             );
           }
 
-          this.readChar(7);
+          this.readChar(offset);
           return [Token.OpenQASM];
         }
         {
