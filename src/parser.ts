@@ -134,6 +134,11 @@ class Parser {
         return [this.measure(tokens.slice(1))];
       case Token.Id:
         if (
+          this.version.major === OpenQASMMajorVersion.Version3 &&
+          this.matchNext(tokens.slice(1), [Token.Equals, Token.Measure])
+        ) {
+          return [this.measure(tokens)];
+        } else if (
           !(token[1].toString().indexOf("QASM") != -1) &&
           !(token[1].toString().indexOf("include") != -1)
         ) {
@@ -367,12 +372,69 @@ class Parser {
    * @return An AST node representing the measurement.
    */
   measure(tokens: Array<[Token, (number | string)?]>): AstNode {
-    let first_id: string;
-    let second_id: string;
-    let first_index: number;
-    let second_index: number;
-    if (this.matchNext(tokens, [Token.Id, Token.Arrow])) {
-      first_id = tokens[0][1].toString();
+    let src_register: string;
+    let dest_register: string;
+    let src_index: number | undefined;
+    let dest_index: number | undefined;
+    // Check for new OpenQASM 3 syntax without destination index
+    if (
+      this.version.major === OpenQASMMajorVersion.Version3 &&
+      this.matchNext(tokens, [Token.Id, Token.Equals, Token.Measure])
+    ) {
+      dest_register = tokens[0][1].toString();
+      tokens = tokens.slice(3);
+
+      if (this.matchNext(tokens, [Token.Id, Token.Semicolon])) {
+        src_register = tokens[0][1].toString();
+      } else if (
+        this.matchNext(tokens, [
+          Token.Id,
+          Token.LSParen,
+          Token.NNInteger,
+          Token.RSParen,
+          Token.Semicolon,
+        ])
+      ) {
+        src_register = tokens[0][1].toString();
+        src_index = Number(tokens[2][1]);
+      } else {
+        throw BadMeasurementError;
+      }
+      // Check for new OpenQASM 3 syntax with destination index
+    } else if (
+      this.version.major === OpenQASMMajorVersion.Version3 &&
+      this.matchNext(tokens, [
+        Token.Id,
+        Token.LSParen,
+        Token.NNInteger,
+        Token.RSParen,
+        Token.Equals,
+        Token.Measure,
+      ])
+    ) {
+      dest_register = tokens[0][1].toString();
+      dest_index = Number(tokens[2][1]);
+      tokens = tokens.slice(6);
+
+      if (this.matchNext(tokens, [Token.Id, Token.Semicolon])) {
+        src_register = tokens[0][1].toString();
+      } else if (
+        this.matchNext(tokens, [
+          Token.Id,
+          Token.LSParen,
+          Token.NNInteger,
+          Token.RSParen,
+          Token.Semicolon,
+        ])
+      ) {
+        src_register = tokens[0][1].toString();
+        src_index = Number(tokens[2][1]);
+      } else {
+        throw BadMeasurementError;
+      }
+    // Check for existing OpenQASM 2 syntax (which is also supported in OpenQASM 3)
+    } else if (this.matchNext(tokens, [Token.Id, Token.Arrow])) {
+      src_register = tokens[0][1].toString();
       tokens = tokens.slice(2);
     } else if (
       this.matchNext(tokens, [
@@ -383,14 +445,14 @@ class Parser {
         Token.Arrow,
       ])
     ) {
-      first_id = tokens[0][1].toString();
-      first_index = Number(tokens[2][1]);
+      src_register = tokens[0][1].toString();
+      src_index = Number(tokens[2][1]);
       tokens = tokens.slice(5);
     } else {
       throw BadMeasurementError;
     }
     if (this.matchNext(tokens, [Token.Id, Token.Semicolon])) {
-      second_id = tokens[0][1].toString();
+      dest_register = tokens[0][1].toString();
       tokens = tokens.slice(2);
     } else if (
       this.matchNext(tokens, [
@@ -401,20 +463,20 @@ class Parser {
         Token.Semicolon,
       ])
     ) {
-      second_id = tokens[0][1].toString();
-      second_index = Number(tokens[2][1]);
+      dest_register = tokens[0][1].toString();
+      dest_index = Number(tokens[2][1]);
       tokens = tokens.slice(5);
     } else {
       throw BadMeasurementError;
     }
-    if (first_index != undefined && second_index != undefined) {
-      return new Measure(first_id, second_id, first_index, second_index);
-    } else if (first_index != undefined) {
-      return new Measure(first_id, second_id, first_index);
-    } else if (second_index != undefined) {
-      return new Measure(first_id, second_id, second_index);
+    if (src_index != undefined && dest_index != undefined) {
+      return new Measure(src_register, dest_register, src_index, dest_index);
+    } else if (src_index != undefined) {
+      return new Measure(src_register, dest_register, src_index);
+    } else if (dest_index != undefined) {
+      return new Measure(src_register, dest_register, dest_index);
     }
-    return new Measure(first_id, second_id);
+    return new Measure(src_register, dest_register);
   }
 
   /**
