@@ -54,21 +54,21 @@ class Variable extends AstNode {
 
 /** Class representing a measurement. */
 class Measure extends AstNode {
-  src_index: number;
+  src_index: number | null;
   src_register: string;
-  dest_index: number;
+  dest_index: number | null;
   dest_register: string;
   constructor(
     src_register: string,
     dest_register: string,
-    src_index?: number,
-    dest_index?: number,
+    src_index?: number | null,
+    dest_index?: number | null,
   ) {
     super();
-    this.src_index = src_index != undefined ? src_index : null;
     this.src_register = src_register;
-    this.dest_index = dest_index != undefined ? dest_index : null;
     this.dest_register = dest_register;
+    this.src_index = src_index ?? null;
+    this.dest_index = dest_index ?? null;
   }
 }
 

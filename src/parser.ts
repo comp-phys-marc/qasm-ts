@@ -469,14 +469,7 @@ class Parser {
     } else {
       throw BadMeasurementError;
     }
-    if (src_index != undefined && dest_index != undefined) {
-      return new Measure(src_register, dest_register, src_index, dest_index);
-    } else if (src_index != undefined) {
-      return new Measure(src_register, dest_register, src_index);
-    } else if (dest_index != undefined) {
-      return new Measure(src_register, dest_register, dest_index);
-    }
-    return new Measure(src_register, dest_register);
+    return new Measure(src_register, dest_register, src_index, dest_index);
   }
 
   /**
