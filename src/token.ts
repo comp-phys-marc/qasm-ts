@@ -57,21 +57,25 @@ enum Token {
   Pi,
   // 28; quantum register declaration
   QReg,
-  // 29; classical register declaration
+  // 29; quantum register declaration (functionally equivalent to QReg but for OpenQASM version 3)
+  Qubit,
+  // 30; classical register declaration
   CReg,
-  // 30; barrier operation
+  // 31; classical register declaration (functionally equivalent to Creg but for OpenQASM version 3) 
+  Bit,
+  // 32; barrier operation
   Barrier,
-  // 31; gate declaration or application
+  // 33; gate declaration or application
   Gate,
-  // 32; measurement operation
+  // 34; measurement operation
   Measure,
-  // 33; qubit reset operation
+  // 35; qubit reset operation
   Reset,
-  // 34; include statement
+  // 36; include statement
   Include,
-  // 35; if statement conditional
+  // 37; if statement conditional
   If,
-  // 36; string literal
+  // 38; string literal
   String,
 }
 
