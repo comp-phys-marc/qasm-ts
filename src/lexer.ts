@@ -353,10 +353,10 @@ class Lexer {
           const measureLit = char + this.readIdentifier();
           return [lookup(measureLit), measureLit];
         }
-      // Both version string formats like `OPENQASM` and `OpenQASM` are supported. This is because the OpenQASM 3.0 documentation
-      // (https://openqasm.com/language/comments.html#included-files) shows an example of a version string as `OPENQASM x.x;`
-      // whereas the `Circuit Header` section on page 8 (https://arxiv.org/pdf/2104.14722) of the OpenQASM 3.0 paper gives an
-      // example of `OpenQASM x.x;`.
+      // Both version string formats like `OPENQASM` and `OpenQASM` are supported. 
+      // This is because the OpenQASM 3.0 documentation shows an example of a version 
+      // string as `OPENQASM x.x;` whereas the `Circuit Header` section on page 8 of 
+      // the OpenQASM 3.0 paper gives an example of `OpenQASM x.x;`.
       case "O":
         if (
           this.input[this.cursor].toLowerCase() == "p" &&
@@ -425,6 +425,22 @@ class Lexer {
         {
           const openQasmLit = char + this.readIdentifier();
           return [lookup[openQasmLit], openQasmLit];
+        }
+      case "i":
+        if (
+          this.input[this.cursor] == "n" &&
+          this.input[this.cursor + 1] == "c" &&
+          this.input[this.cursor + 2] == "l" &&
+          this.input[this.cursor + 3] == "u" &&
+          this.input[this.cursor + 4] == "d" &&
+          this.input[this.cursor + 5] == "e"
+        ) {
+          this.readChar(6);
+          return [Token.Include];
+        }
+        {
+          const includeLit = char + this.readIdentifier();
+          return [lookup(includeLit), includeLit];
         }
       case '"': {
         const stringLiteral = char + this.readStringLiteral('"');

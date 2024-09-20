@@ -1,6 +1,15 @@
 /** Base class representing a basic AST node. */
 class AstNode {}
 
+/** Class representing an include statement. */
+class Include extends AstNode {
+  filename: string;
+  constructor(filename: string) {
+    super();
+    this.filename = filename;
+  }
+}
+
 /** Class representing a qubit register. */
 class QReg extends AstNode {
   size: number;
@@ -108,6 +117,13 @@ class Gate extends AstNode {
     this.nodes = nodes;
   }
 }
+
+/** TODO : Add new AstNode subclass for the `ctrl @` modifier called ControlledGate that
+ * would have an attribute of single qubit gate. When parsing, expect next tokens to be
+ * a single qubit gate. Qiskit adds it to the applygate, check their impelemntation also. */
+
+/** TODO : expression, check https://github.com/comp-phys-marc/blackbird-ts/blob/master/src/ast.ts#L116 */
+
 /** Class representing conditional. */
 class If extends AstNode {
   register: string;
@@ -177,6 +193,7 @@ class Real extends AstNode {
 
 export {
   AstNode,
+  Include,
   QReg,
   CReg,
   Barrier,

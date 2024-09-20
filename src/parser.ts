@@ -3,6 +3,7 @@ import { OpenQASMVersion, OpenQASMMajorVersion } from "./version";
 
 import {
   BadArgumentError,
+  BadIncludeError,
   BadCregError,
   BadQregError,
   BadConditionalError,
@@ -14,6 +15,7 @@ import {
 
 import {
   AstNode,
+  Include,
   QReg,
   CReg,
   Barrier,
@@ -120,6 +122,8 @@ class Parser {
   ): Array<AstNode> {
     const token = tokens[0];
     switch (token[0]) {
+      case Token.Include:
+        return [this.include(tokens.slice(1))];
       case Token.QReg:
         return [this.qreg(tokens.slice(1))];
       case Token.Qubit:
@@ -432,7 +436,7 @@ class Parser {
       } else {
         throw BadMeasurementError;
       }
-    // Check for existing OpenQASM 2 syntax (which is also supported in OpenQASM 3)
+      // Check for existing OpenQASM 2 syntax (which is also supported in OpenQASM 3)
     } else if (this.matchNext(tokens, [Token.Id, Token.Arrow])) {
       src_register = tokens[0][1].toString();
       tokens = tokens.slice(2);
@@ -647,6 +651,20 @@ class Parser {
       }
     }
     return args;
+  }
+
+  /**
+   * Parses an include statement.
+   * @param tokens - Tokens to parse.
+   * @return An Include node representing the include statement.
+   */
+  include(tokens: Array<[Token, (number | string)?]>): Include {
+    let filename: string;
+    if (this.matchNext(tokens, [Token.String, Token.Semicolon])) {
+      filename = tokens[0][1].toString();
+      return new Include(filename);
+    }
+    throw BadIncludeError;
   }
 
   /**
