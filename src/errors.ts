@@ -7,6 +7,15 @@ class BadArgumentError extends Error {
   }
 }
 
+/** Class representing a bad include statement */
+class BadIncludeError extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+    this.name = BadIncludeError.name;
+  }
+}
+
 /** Class representing a bad quantum register exception. */
 class BadQregError extends Error {
   constructor(message?: string) {
@@ -102,6 +111,7 @@ type ReturnErrorConstructor = new (message?: string) => Error;
 
 export {
   BadArgumentError,
+  BadIncludeError,
   BadCregError,
   BadQregError,
   BadConditionalError,
