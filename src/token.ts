@@ -123,7 +123,7 @@ function notParam(token: Token): boolean {
     token == Token.NNInteger ||
     token == Token.Real ||
     token == Token.Id ||
-    this.inverseLookup(token)
+    inverseLookup(token)
   ) {
     return false;
   }
