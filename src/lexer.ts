@@ -3,8 +3,23 @@ import {
   BadEqualsError,
   MissingSemicolonError,
   UnsupportedOpenQASMVersionError,
+  ReturnErrorConstructor,
 } from "./errors";
 import { OpenQASMMajorVersion, OpenQASMVersion } from "./version";
+
+/**
+ * Handles throwing lexer errors with basic stack trace.
+ * @param error - The error to throw.
+ * @param number - The line number in the source code.
+ * @param code - The source code that the error is about.
+ */
+function throwLexerError(
+  error: ReturnErrorConstructor,
+  line: number,
+  code: string,
+) {
+  throw new error(`Line ${line}: ${code}`);
+}
 
 /**
  * Returns whether a given character could be an element of a numeric value.
@@ -87,7 +102,12 @@ class Lexer {
     // Default to OpenQASM 3.0.
     this.version = new OpenQASMVersion(OpenQASMMajorVersion.Version3);
   }
-  verifyInput = (): boolean => {
+
+  /**
+   * Verifies that all appropriate lines end with a semicolon.
+   * @return A tuple of the status and if False, returns the problematic line.
+   */
+  verifyInput = (): [boolean, number | null, string | null] => {
     const lines = this.input.split(/\n|\r(?!\n)|\u2028|\u2029|\r\n/g);
     for (let i = 0; i < lines.length; i++) {
       if (
@@ -97,10 +117,10 @@ class Lexer {
         !(lines[i].trim() == "{" || lines[i].trim() == "}") &&
         !lines[i].includes(";")
       ) {
-        return false;
+        return [false, i + 1, lines[i]];
       }
     }
-    return true;
+    return [true, null, null];
   };
 
   /**
@@ -110,8 +130,13 @@ class Lexer {
   lex = (): Array<[Token, (number | string)?]> => {
     const tokens: Array<[Token, (number | string)?]> = [];
     let token: [Token, (number | string)?];
-    if (!this.verifyInput()) {
-      throw MissingSemicolonError;
+    const verifyInputResult = this.verifyInput();
+    if (!verifyInputResult[0]) {
+      throwLexerError(
+        MissingSemicolonError,
+        verifyInputResult[1],
+        verifyInputResult[2],
+      );
     }
     while (this.cursor < this.input.length) {
       token = this.nextToken();
@@ -195,9 +220,6 @@ class Lexer {
     return lit;
   };
 
-  // TODO : Should this method check if its reached the end of the file?
-  // In that case would return a boolean value. Prevents users of the method
-  // to have to do their own checking on the cursor.
   /**
    * Advances the cusor past the next block of whitespace.
    */
@@ -230,7 +252,12 @@ class Lexer {
         } else if (this.version.isVersion3() && !this.peekEq("=")) {
           return [Token.EqualsAssmt];
         } else {
-          throw BadEqualsError;
+          throwLexerError(
+            BadEqualsError,
+            this.getLineNumber(this.cursor),
+            this.getCurrentLine(this.cursor),
+          );
+          break;
         }
       case "-":
         if (this.peekEq(">")) {
@@ -417,7 +444,7 @@ class Lexer {
             );
           } else {
             throw new UnsupportedOpenQASMVersionError(
-              `Unsupported OpenQASM version: ${majorVersion}.${minor ?? 0}`,
+              `Unsupported OpenQASM version detected: ${majorVersion}.${minor ?? 0}`,
             );
           }
 
@@ -482,6 +509,28 @@ class Lexer {
           return [Token.Illegal];
         }
     }
+  };
+
+  /**
+   * Returns the line number where the current cursor is located.
+   * @param cursor - The current cursor position in the input string.
+   * @return The line number.
+   */
+  getLineNumber = (cursor: number): number => {
+    return this.input
+      .substring(0, cursor)
+      .split(/\n|\r(?!\n)|\u2028|\u2029|\r\n/).length;
+  };
+
+  /**
+   * Returns the current line of code where the cursor is located.
+   * @param cursor - The current cursor position in the input string.
+   * @return The specific line where the cursor is located.
+   */
+  getCurrentLine = (cursor: number): string => {
+    const lines = this.input.split(/\n|\r(?!\n)|\u2028|\u2029|\r\n/);
+    const lineNumber = this.getLineNumber(cursor);
+    return lines[lineNumber - 1];
   };
 }
 export default Lexer;
