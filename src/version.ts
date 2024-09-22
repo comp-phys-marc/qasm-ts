@@ -25,6 +25,22 @@ class OpenQASMVersion {
   toString(): string {
     return `${this.major}.${this.minor}`;
   }
+
+  /** Returns whether the version is 3.x */
+  isVersion3(): boolean {
+    if (this.major === OpenQASMMajorVersion.Version3) {
+      return true;
+    }
+    return false;
+  }
+
+  /** Returns whether the version is 2.x */
+  isVersion2(): boolean {
+    if (this.major === OpenQASMMajorVersion.Version2) {
+      return true;
+    }
+    return false;
+  }
 }
 
 export { OpenQASMMajorVersion, OpenQASMVersion };

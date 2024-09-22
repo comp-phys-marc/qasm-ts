@@ -139,7 +139,7 @@ class Parser {
         return [this.measure(tokens.slice(1))];
       case Token.Id:
         if (
-          this.version.major === OpenQASMMajorVersion.Version3 &&
+          this.version.isVersion3() &&
           this.matchNext(tokens.slice(1), [Token.Equals, Token.Measure])
         ) {
           return [this.measure(tokens)];
@@ -160,7 +160,7 @@ class Parser {
       case Token.Gate:
         return [this.gate(tokens.slice(1))];
       case Token.Opaque:
-        if (this.version.major === OpenQASMMajorVersion.Version3) {
+        if (this.version.isVersion3()) {
           return [];
         }
         return [this.opaque(tokens.slice(1))];
@@ -388,7 +388,7 @@ class Parser {
     let dest_index: number | undefined;
     // Check for new OpenQASM 3 syntax without destination index
     if (
-      this.version.major === OpenQASMMajorVersion.Version3 &&
+      this.version.isVersion3() &&
       this.matchNext(tokens, [Token.Id, Token.Equals, Token.Measure])
     ) {
       dest_register = tokens[0][1].toString();
@@ -412,7 +412,7 @@ class Parser {
       }
       // Check for new OpenQASM 3 syntax with destination index
     } else if (
-      this.version.major === OpenQASMMajorVersion.Version3 &&
+      this.version.isVersion3() &&
       this.matchNext(tokens, [
         Token.Id,
         Token.LSParen,
@@ -773,7 +773,7 @@ class Parser {
    */
   private validateIdentifier(identifier: string): boolean {
     const firstChar = identifier[0];
-    if (this.version.major === OpenQASMMajorVersion.Version2) {
+    if (this.version.isVersion2()) {
       return /^[a-z]$/.test(firstChar);
     } else {
       return /^[a-zA-Z_\u0080-\uFFFF]$/.test(firstChar) && identifier !== "π";
