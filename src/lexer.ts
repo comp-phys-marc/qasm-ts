@@ -227,6 +227,8 @@ class Lexer {
         if (this.peekEq("=")) {
           this.readChar();
           return [Token.Equals];
+        } else if (this.version.isVersion3() && !this.peekEq("=")) {
+          return [Token.EqualsAssmt];
         } else {
           throw BadEqualsError;
         }

@@ -29,7 +29,7 @@ enum Token {
   RCParen,
   // 14; arrow (->) used in measurement operations
   Arrow,
-  // 15; equality operator (=)
+  // 15; equality operator (==)
   Equals,
   // 16; addition operator (+)
   Plus,
@@ -79,6 +79,8 @@ enum Token {
   String,
   // 39; opaque keyword
   Opaque,
+  // 40; assignment operator (=)
+  EqualsAssmt,
 }
 
 const lookupMap: object = {
