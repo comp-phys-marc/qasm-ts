@@ -21,6 +21,7 @@ import {
   Barrier,
   Measure,
   Gate,
+  Opaque,
   If,
   ApplyGate,
   Divide,
@@ -158,6 +159,11 @@ class Parser {
         }
       case Token.Gate:
         return [this.gate(tokens.slice(1))];
+      case Token.Opaque:
+        if (this.version.major === OpenQASMMajorVersion.Version3) {
+          return [];
+        }
+        return [this.opaque(tokens.slice(1))];
       case Token.If:
         return [this.conditional(tokens.slice(1))];
       case Token.Power:
@@ -722,6 +728,42 @@ class Parser {
     const applications: Array<AstNode> = this.sub(tokens);
     this.gates.push(name);
     return new Gate(name, registers, params, applications);
+  }
+
+  /**
+   * Parses an opaque declaration if using OpenQASM 2. If using OpenQASM 3 it skips the line.
+   * @param tokens - Remaining tokens to parse.
+   * @return An AST node representing the opaque declaration.
+   */
+  opaque(tokens: Array<[Token, (number | string)?]>): AstNode {
+    let name: string;
+    let params: Array<string>;
+    let qubits: Array<[string, number?]> = [];
+    if (this.matchNext(tokens, [Token.Id])) {
+      name = tokens[0][1].toString();
+      tokens = tokens.slice(1);
+    } else {
+      throw BadGateError;
+    }
+
+    if (this.matchNext(tokens, [Token.LParen])) {
+      tokens = tokens.slice(1);
+      if (!this.matchNext(tokens, [Token.RParen])) {
+        params = this.matchIdList(tokens);
+        tokens = tokens.slice(params.length + 1);
+      } else {
+        tokens = tokens.slice(1);
+      }
+    }
+
+    qubits = this.matchArgList(tokens);
+    tokens = tokens.slice(qubits.length * 2);
+
+    if (!this.matchNext(tokens, [Token.Semicolon])) {
+      throw BadGateError;
+    }
+
+    return new Opaque(name, qubits, params);
   }
 
   /**

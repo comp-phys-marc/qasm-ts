@@ -118,6 +118,23 @@ class Gate extends AstNode {
   }
 }
 
+/** Class representing an opaque gate declaration (only available in OpenQASM 2.x versions) */
+class Opaque extends AstNode {
+  name: string;
+  qubits: Array<[string, number?]>;
+  params: Array<string>;
+  constructor(
+    name: string,
+    qubits: Array<[string, number?]>,
+    params: Array<string> = [],
+  ) {
+    super();
+    this.name = name;
+    this.qubits = qubits;
+    this.params = params;
+  }
+}
+
 /** TODO : Add new AstNode subclass for the `ctrl @` modifier called ControlledGate that
  * would have an attribute of single qubit gate. When parsing, expect next tokens to be
  * a single qubit gate. Qiskit adds it to the applygate, check their impelemntation also. */
@@ -200,6 +217,7 @@ export {
   Measure,
   ApplyGate,
   Gate,
+  Opaque,
   If,
   Id,
   Divide,
