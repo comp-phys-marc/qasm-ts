@@ -61,7 +61,7 @@ enum Token {
   Qubit,
   // 30; classical register declaration
   CReg,
-  // 31; classical register declaration (functionally equivalent to Creg but for OpenQASM version 3) 
+  // 31; classical register declaration (functionally equivalent to Creg but for OpenQASM version 3)
   Bit,
   // 32; barrier operation
   Barrier,
@@ -77,6 +77,8 @@ enum Token {
   If,
   // 38; string literal
   String,
+  // 39; opaque keyword
+  Opaque,
 }
 
 const lookupMap: object = {

@@ -442,6 +442,21 @@ class Lexer {
           const includeLit = char + this.readIdentifier();
           return [lookup(includeLit), includeLit];
         }
+      case "o":
+        if (
+          this.input[this.cursor] == "p" &&
+          this.input[this.cursor + 1] == "a" &&
+          this.input[this.cursor + 2] == "q" &&
+          this.input[this.cursor + 3] == "u" &&
+          this.input[this.cursor + 4] == "e"
+        ) {
+          this.readChar(5);
+          return [Token.Opaque];
+        }
+        {
+          const opaqueLit = char + this.readIdentifier();
+          return [lookup(opaqueLit), opaqueLit];
+        }
       case '"': {
         const stringLiteral = char + this.readStringLiteral('"');
         return [Token.String, stringLiteral];
