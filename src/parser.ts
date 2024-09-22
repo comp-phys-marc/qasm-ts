@@ -1,5 +1,5 @@
 import { Token, notParam } from "./token";
-import { OpenQASMVersion, OpenQASMMajorVersion } from "./version";
+import { OpenQASMVersion } from "./version";
 
 import {
   BadArgumentError,
@@ -138,9 +138,21 @@ class Parser {
       case Token.Measure:
         return [this.measure(tokens.slice(1))];
       case Token.Id:
+        // Check for OpenQASM 3 measure syntax
         if (
-          this.version.isVersion3() &&
-          this.matchNext(tokens.slice(1), [Token.Equals, Token.Measure])
+          (this.version.isVersion3() &&
+            this.matchNext(tokens.slice(1), [
+              Token.EqualsAssmt,
+              Token.Measure,
+            ])) ||
+          (this.version.isVersion3() &&
+            this.matchNext(tokens.slice(1), [
+              Token.LSParen,
+              Token.NNInteger,
+              Token.RSParen,
+              Token.EqualsAssmt,
+              Token.Measure,
+            ]))
         ) {
           return [this.measure(tokens)];
         } else if (
@@ -386,17 +398,20 @@ class Parser {
     let dest_register: string;
     let src_index: number | undefined;
     let dest_index: number | undefined;
-    // Check for new OpenQASM 3 syntax without destination index
+    // Check for new OpenQASM 3 syntax without destination index (i.e. c = measure q|q[i])
     if (
       this.version.isVersion3() &&
-      this.matchNext(tokens, [Token.Id, Token.Equals, Token.Measure])
+      this.matchNext(tokens, [Token.Id, Token.EqualsAssmt, Token.Measure])
     ) {
       dest_register = tokens[0][1].toString();
       tokens = tokens.slice(3);
 
       if (this.matchNext(tokens, [Token.Id, Token.Semicolon])) {
+        // Without source index (i.e. c = measure q)
         src_register = tokens[0][1].toString();
+        tokens = tokens.slice(2);
       } else if (
+        // With source index (i.e. c = measure q[i])
         this.matchNext(tokens, [
           Token.Id,
           Token.LSParen,
@@ -407,10 +422,11 @@ class Parser {
       ) {
         src_register = tokens[0][1].toString();
         src_index = Number(tokens[2][1]);
+        tokens = tokens.slice(5);
       } else {
         throw BadMeasurementError;
       }
-      // Check for new OpenQASM 3 syntax with destination index
+      // Check for new OpenQASM 3 syntax with destination index (i.e c[i] = measure q|q[i])
     } else if (
       this.version.isVersion3() &&
       this.matchNext(tokens, [
@@ -418,7 +434,7 @@ class Parser {
         Token.LSParen,
         Token.NNInteger,
         Token.RSParen,
-        Token.Equals,
+        Token.EqualsAssmt,
         Token.Measure,
       ])
     ) {
@@ -427,7 +443,9 @@ class Parser {
       tokens = tokens.slice(6);
 
       if (this.matchNext(tokens, [Token.Id, Token.Semicolon])) {
+        // Without source index (i.e. c[i] = measure q)
         src_register = tokens[0][1].toString();
+        tokens = tokens.slice(1);
       } else if (
         this.matchNext(tokens, [
           Token.Id,
@@ -437,15 +455,41 @@ class Parser {
           Token.Semicolon,
         ])
       ) {
+        // With source index (i.e. c[i] = measure q[j])
         src_register = tokens[0][1].toString();
         src_index = Number(tokens[2][1]);
+        tokens = tokens.slice(5);
       } else {
         throw BadMeasurementError;
       }
-      // Check for existing OpenQASM 2 syntax (which is also supported in OpenQASM 3)
+      // Check for existing OpenQASM 2 syntax (which is also supported in OpenQASM 3) without
+      // source index (i.e. measure q -> c|c[i])
     } else if (this.matchNext(tokens, [Token.Id, Token.Arrow])) {
       src_register = tokens[0][1].toString();
       tokens = tokens.slice(2);
+
+      if (this.matchNext(tokens, [Token.Id, Token.Semicolon])) {
+        // Without destination index (i.e. measure q -> c)
+        dest_register = tokens[0][1].toString();
+        tokens = tokens.slice(2);
+      } else if (
+        this.matchNext(tokens, [
+          Token.Id,
+          Token.LSParen,
+          Token.NNInteger,
+          Token.RSParen,
+          Token.Semicolon,
+        ])
+      ) {
+        // With destination index (i.e. measure q -> c[i])
+        dest_register = tokens[0][1].toString();
+        dest_index = Number(tokens[2][1]);
+        tokens = tokens.slice(5);
+      } else {
+        throw BadMeasurementError;
+      }
+      // Check for existing OpenQASM 2 syntax (which is also supported in OpenQASM 3) with
+      // source index (i.e. measure q[i] -> c|c[j])
     } else if (
       this.matchNext(tokens, [
         Token.Id,
@@ -458,27 +502,31 @@ class Parser {
       src_register = tokens[0][1].toString();
       src_index = Number(tokens[2][1]);
       tokens = tokens.slice(5);
+
+      if (this.matchNext(tokens, [Token.Id, Token.Semicolon])) {
+        // Without destination index (i.e. measure q[i] -> c)
+        dest_register = tokens[0][1].toString();
+        tokens = tokens.slice(2);
+      } else if (
+        this.matchNext(tokens, [
+          Token.Id,
+          Token.LSParen,
+          Token.NNInteger,
+          Token.RSParen,
+          Token.Semicolon,
+        ])
+      ) {
+        // With destination index (i.e. measure q[i] -> c[j])
+        dest_register = tokens[0][1].toString();
+        dest_index = Number(tokens[2][1]);
+        tokens = tokens.slice(5);
+      } else {
+        throw BadMeasurementError;
+      }
     } else {
       throw BadMeasurementError;
     }
-    if (this.matchNext(tokens, [Token.Id, Token.Semicolon])) {
-      dest_register = tokens[0][1].toString();
-      tokens = tokens.slice(2);
-    } else if (
-      this.matchNext(tokens, [
-        Token.Id,
-        Token.LSParen,
-        Token.NNInteger,
-        Token.RSParen,
-        Token.Semicolon,
-      ])
-    ) {
-      dest_register = tokens[0][1].toString();
-      dest_index = Number(tokens[2][1]);
-      tokens = tokens.slice(5);
-    } else {
-      throw BadMeasurementError;
-    }
+
     return new Measure(src_register, dest_register, src_index, dest_index);
   }
 
