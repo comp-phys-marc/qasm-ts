@@ -1,5 +1,16 @@
+import { OpenQASMVersion } from "./version";
+
 /** Base class representing a basic AST node. */
 class AstNode {}
+
+/** Class representing the version statement. */
+class Version extends AstNode {
+  version: OpenQASMVersion;
+  constructor(version: OpenQASMVersion) {
+    super();
+    this.version = version;
+  }
+}
 
 /** Class representing an include statement. */
 class Include extends AstNode {
@@ -9,6 +20,9 @@ class Include extends AstNode {
     this.filename = filename;
   }
 }
+
+/** Class to represent a statement. */
+class Statement extends AstNode {}
 
 /** Class representing a qubit register. */
 class QReg extends AstNode {
@@ -154,6 +168,45 @@ class If extends AstNode {
   }
 }
 
+/** Class representing expressions. */
+class Expression extends AstNode {}
+
+/** Class representing a range expression. */
+class Range extends Expression {
+  start: number;
+  end: number;
+  step: number;
+  constructor(start: number, end: number, step: number) {
+    super();
+    this.start = start;
+    this.end = end;
+    this.step = step;
+  }
+}
+
+/** Class representing a unary operator. */
+class Unary extends Expression {
+  static Op = class {
+    static LOGIC_NOT = "!";
+    static BIT_NOT = "~";
+  };
+  op: string;
+  operand: Expression;
+}
+
+/** Class representing a binary operator. */
+class Binary extends Expression {
+  static Op = class {
+    static BIT_AND = "&";
+    static BIT_OR = "|";
+    static BIT_XOR = "^";
+    static LOGIC_AND = "&&";
+    static LOGIC_OR = "||";
+    static LESS = "<";
+    static LESS_EQUAL = "<=";
+  };
+}
+
 /** Class representing minus. */
 class Minus extends AstNode {}
 
@@ -210,7 +263,12 @@ class Real extends AstNode {
 
 export {
   AstNode,
+  Version,
   Include,
+  Statement,
+  Expression,
+  Range,
+  Unary,
   QReg,
   CReg,
   Barrier,

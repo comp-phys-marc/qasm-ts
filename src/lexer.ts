@@ -396,7 +396,8 @@ class Lexer {
           this.input[this.cursor + 5] == "S" &&
           this.input[this.cursor + 6] == "M"
         ) {
-          let offset = 7;
+          this.readChar(7);
+          let offset = 0;
           while (
             this.cursor + offset < this.input.length &&
             " \t".indexOf(this.input[this.cursor + offset]) > -1
@@ -408,7 +409,7 @@ class Lexer {
           let majorVersion = "";
           while (
             this.cursor + offset < this.input.length &&
-            isNumeric(this.input[this.cursor + offset])
+            !isNaN(parseInt(this.input[this.cursor + offset], 10))
           ) {
             majorVersion += this.input[this.cursor + offset];
             offset++;
@@ -421,7 +422,7 @@ class Lexer {
             minorVersion = "";
             while (
               this.cursor + offset < this.input.length &&
-              isNumeric(this.input[this.cursor + offset])
+              !isNaN(parseInt(this.input[this.cursor + offset], 10))
             ) {
               minorVersion += this.input[this.cursor + offset];
               offset++;
@@ -448,7 +449,6 @@ class Lexer {
             );
           }
 
-          this.readChar(offset);
           return [Token.OpenQASM];
         }
         {

@@ -11,10 +11,12 @@ import {
   BadMeasurementError,
   BadGateError,
   BadParameterError,
+  UnsupportedOpenQASMVersionError,
 } from "./errors";
 
 import {
   AstNode,
+  Version,
   Include,
   QReg,
   CReg,
@@ -125,6 +127,8 @@ class Parser {
     switch (token[0]) {
       case Token.Include:
         return [this.include(tokens.slice(1))];
+      case Token.OpenQASM:
+        return [this.versionHeader(tokens.slice(1))];
       case Token.QReg:
         return [this.qreg(tokens.slice(1))];
       case Token.Qubit:
@@ -719,6 +723,27 @@ class Parser {
       return new Include(filename);
     }
     throw BadIncludeError;
+  }
+
+  /**
+   * Parses the version header and sets the parser version.
+   * @param tokens - Tokens to parse.
+   * @return A Version node representing the version statement.
+   */
+  versionHeader(tokens: Array<[Token, (number | string)?]>): Version {
+    let version: OpenQASMVersion;
+    if (this.matchNext(tokens, [Token.NNInteger, Token.Semicolon])) {
+      version = new OpenQASMVersion(Number(tokens[0][1]));
+      return new Version(version);
+    } else if (this.matchNext(tokens, [Token.Real, Token.Semicolon])) {
+      const versionSplits = tokens[0][1].toString().split(".");
+      version = new OpenQASMVersion(
+        Number(versionSplits[0]),
+        Number(versionSplits[1]),
+      );
+      return new Version(version);
+    }
+    throw UnsupportedOpenQASMVersionError;
   }
 
   /**
