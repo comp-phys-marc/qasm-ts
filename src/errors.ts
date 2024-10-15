@@ -106,6 +106,34 @@ class UnsupportedOpenQASMVersionError extends Error {
   }
 }
 
+/** Class representing an error parsing an expected string literal. */
+class BadStringLiteralError extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+    this.name = BadStringLiteralError.name;
+  }
+}
+
+/** Class representing an error parsing scalar types. */
+class BadClassicalTypeError extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+    this.name = BadStringLiteralError.name;
+  }
+}
+
+/** Class representing an error parsing an expression. */
+class BadExpressionError extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+    this.name = BadStringLiteralError.name;
+  }
+}
+
+
 /** Type for returning an error constructor. */
 type ReturnErrorConstructor = new (message?: string) => Error;
 
@@ -122,5 +150,8 @@ export {
   BadParameterError,
   MissingSemicolonError,
   UnsupportedOpenQASMVersionError,
+  BadStringLiteralError,
+  BadClassicalTypeError,
+  BadExpressionError,
   ReturnErrorConstructor,
 };
