@@ -1,4 +1,4 @@
-import { Token, notParam } from "../token";
+import { Token, notParam } from "./token";
 import { OpenQASMVersion } from "../version";
 import {
   BadArgumentError,

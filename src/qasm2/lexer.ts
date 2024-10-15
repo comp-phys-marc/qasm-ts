@@ -5,7 +5,6 @@ import {
   UnsupportedOpenQASMVersionError,
   ReturnErrorConstructor,
 } from "../errors";
-import { OpenQASMMajorVersion, OpenQASMVersion } from "../version";
 
 /**
  * Handles throwing lexer errors with basic stack trace.
@@ -89,8 +88,6 @@ class Lexer {
   input: string;
   /** The lexer's current cursor location. */
   cursor: number;
-  /** The OpenQASM version. */
-  version: OpenQASMVersion;
   /**
    * Creates a lexer.
    * @param input - The string to lex.
@@ -99,8 +96,6 @@ class Lexer {
   constructor(input: string, cursor: number = 0) {
     this.input = input;
     this.cursor = cursor;
-    // Default to OpenQASM 2.0.
-    this.version = new OpenQASMVersion(OpenQASMMajorVersion.Version2);
   }
 
   /**
@@ -411,12 +406,7 @@ class Lexer {
           const major = parseInt(majorVersion, 10);
           const minor = minorVersion ? parseInt(minorVersion, 10) : undefined;
 
-          if (major == 2) {
-            this.version = new OpenQASMVersion(
-              OpenQASMMajorVersion.Version2,
-              minor,
-            );
-          } else {
+          if (major !== 2) {
             throw new UnsupportedOpenQASMVersionError(
               `Unsupported OpenQASM version detected: ${majorVersion}.${minor ?? 0}`,
             );
