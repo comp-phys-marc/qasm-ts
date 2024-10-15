@@ -23,8 +23,8 @@ class Statement extends AstNode {}
 /**
  * Class representing a custom grammar for specifying calibrations.
  *
- * calibrationGrammarDeclaration
- *  : 'defcalgrammar' calibrationGrammar SEMICOLON
+ * calibrationGrammarStatement:
+ *  | DEFCALGRAMMAR StringLiteral SEMICOLON
  */
 class CalibrationGrammarDeclaration extends Statement {
   name: string;
@@ -37,8 +37,8 @@ class CalibrationGrammarDeclaration extends Statement {
 /**
  * Class representing an include statement.
  *
- * include
- *  : `include` StringLiteral SEMICOLON
+ * includeStatement:
+ *   INCLUDE StringLiteral SEMICOLON
  */
 class Include extends AstNode {
   filename: string;
@@ -77,21 +77,17 @@ class QuantumInstrcution extends AstNode {}
 /** Base class representing a classical computing type. */
 class ClassicalType extends AstNode {}
 
-/** Enum represnting the allowed values for floating-point type widths. */
-enum FloatTypeWidth {
-  HALF = 16,
-  SINGLE = 32,
-  DOUBLE = 64,
-  QUAD = 128,
-  OCT = 256,
-}
-
-/** Class representing a classical float type. */
+/**
+ * Class representing a classical float type.
+ *
+ * scalarType:
+ *   FLOAT designator?
+ */
 class FloatType extends ClassicalType {
-  width: FloatTypeWidth;
-  constructor(width: FloatTypeWidth) {
+  width: number | Expression | null;
+  constructor(width?: number | Expression) {
     super();
-    this.width = width;
+    this.width = width ? width : null;
   }
 }
 
@@ -100,8 +96,8 @@ class BoolType extends ClassicalType {}
 
 /** Class representing a classical signed integer type. */
 class IntType extends ClassicalType {
-  size: number | null;
-  constructor(size?: number) {
+  size: number | Expression | null;
+  constructor(size?: number | Expression) {
     super();
     this.size = size ? size : null;
   }
@@ -109,27 +105,36 @@ class IntType extends ClassicalType {
 
 /** Class representing a classical unsigned integer type. */
 class UIntType extends ClassicalType {
-  size: number | null;
-  constructor(size?: number) {
+  size: number | Expression | null;
+  constructor(size?: number | Expression) {
     super();
     this.size = size ? size : null;
   }
 }
 
-/** Class representing a classical single bit type. */
-class BitType extends ClassicalType {}
-
-/** Class representing a classical, fixed number of bits. */
-class BitArrayType extends ClassicalType {
-  size: number;
-  constructor(size: number) {
+/** Class representing a classical bit type. */
+class BitType extends ClassicalType {
+  size: number | Expression | null;
+  constructor(size?: number | Expression) {
     super();
-    this.size = size;
+    this.size = size ? size : null;
   }
 }
 
+/** Class representing a duration type. */
+class DurationType extends ClassicalType {}
+
 /** Base class representing an expression. */
 class Expression extends AstNode {}
+
+/** Class representing a list of parameters. */
+class Parameters extends Expression {
+  args: Array<Expression>;
+  constructor(args: Array<Expression>) {
+    super();
+    this.args = args;
+  }
+}
 
 /** Class representing a range. */
 class Range extends Expression {
@@ -171,10 +176,74 @@ class Euler extends Expression {}
 /** Class representing the Tau constant. */
 class Tau extends Expression {}
 
+/** Enum representing the available mathematical functions. */
+enum MathFunctionTypes {
+  CEILING = "ceiling",
+  EXP = "exponential",
+  FLOOR = "floor",
+  LOG = "logarithm",
+  MOD = "modulus",
+  POPCOUNT = "popcount",
+  POW = "power",
+  SQRT = "sqrt",
+  ROTR = "rotr",
+  ROTL = "rotl",
+}
+
+/** Class representing a mathematical function. */
+class MathFunction extends Expression {
+  mathType: MathFunctionTypes;
+  operands: Expression;
+  constructor(mathType: MathFunctionTypes, operands: Expression | Array<Expression>) {
+    super();
+    this.mathType = mathType;
+    this.operands = operands;
+  }
+}
+
+/** Enum representing the available trigonometric functions. */
+enum TrigFunctionTypes {
+  ARCCOS = "ArcCos",
+  ARCSIN = "ArcSin",
+  ARCTAN = "ArcTan",
+  COS = "Cos",
+  SIN = "Sin",
+  TAN = "Tan",
+}
+
+/** Class representing a trigonometric function. */
+class TrigFunction extends Expression {
+  trigType: TrigFunctionTypes;
+  operand: Expression;
+  constructor(trigType: TrigFunctionTypes, operand: Expression) {
+    super();
+    this.trigType = trigType;
+    this.operand = operand;
+  }
+}
+
 /** Class representing an integer literal. */
 class IntegerLiteral extends Expression {
-  value: number;
-  constructor(value: number) {
+  value: number | string;
+  constructor(value: number | string) {
+    super();
+    this.value = value;
+  }
+}
+
+/** Class representing a binary, octal, or hex literal. */
+class NumericLiteral extends Expression {
+  value: string;
+  constructor(value: string) {
+    super();
+    this.value = value;
+  }
+}
+
+/** Class representing a float literal. */
+class FloatLiteral extends Expression {
+  value: number | string;
+  constructor(value: number | string) {
     super();
     this.value = value;
   }
@@ -192,11 +261,9 @@ class BooleanLiteral extends Expression {
 /** Class representing a bit string literal. */
 class BitstringLiteral extends Expression {
   value: string;
-  width: number;
-  constructor(value: string, width: number) {
+  constructor(value: string) {
     super();
     this.value = value;
-    this.width = width;
   }
 }
 
@@ -211,9 +278,9 @@ enum DurationUnit {
 
 /** Class representing a duration literal. */
 class DurationLiteral extends Expression {
-  value: number;
+  value: number | Expression;
   unit: DurationUnit;
-  constructor(value: number, unit: DurationUnit) {
+  constructor(value: number | Expression, unit: DurationUnit) {
     super();
     this.value = value;
     this.unit = unit;
@@ -234,6 +301,29 @@ class Unary extends Expression {
     super();
     this.op = op;
     this.operand = operand;
+  }
+}
+
+/** Enum representing arithmetic operations. */
+enum ArithmeticOp {
+  POWER = "**",
+  TIMES = "*",
+  DIVISION = "/",
+  MOD = "%",
+  PLUS = "+",
+  MINUS = "-",
+}
+
+/** Class representing an arithmetic operator expression. */
+class Arithmetic extends Expression {
+  op: ArithmeticOp;
+  left: Expression;
+  right: Expression;
+  constructor(op: ArithmeticOp, left: Expression, right: Expression) {
+    super();
+    this.op = op;
+    this.left = left;
+    this.right = right;
   }
 }
 
@@ -294,7 +384,7 @@ class Index extends Expression {
  *
  * { Expression (, Expression )* }
  */
-class IndexSet extends AstNode {
+class IndexSet extends Expression {
   values: Array<Expression>;
   constructor(values: Array<Expression>) {
     super();
@@ -352,15 +442,18 @@ class ClassicalDeclaration extends Statement {
   classicalType: ClassicalType;
   identifier: Identifier;
   initializer: any | null;
+  isConst: boolean;
   constructor(
     classicalType: ClassicalType,
     identifier: Identifier,
     initializer?: any,
+    isConst?: boolean, 
   ) {
     super();
     this.classicalType = classicalType;
     this.identifier = identifier;
     this.initializer = initializer ? initializer : null;
+    this.isConst = isConst ? isConst : false;
   }
 }
 
@@ -564,11 +657,11 @@ class QuantumGateDefinition extends Statement {
 class SubroutineDefinition extends Statement {
   identifier: Identifier;
   subroutineBlock: SubroutineBlock;
-  args: Array<any> | null;
+  args: Parameters | Array<any> | null;
   constructor(
     identifier: Identifier,
     subroutineBlock: SubroutineBlock,
-    args: Array<any> | null,
+    args: Parameters | Array<any> | null,
   ) {
     super();
     this.identifier = identifier;
@@ -582,34 +675,25 @@ class SubroutineDefinition extends Statement {
  *
  * calibrationArgumentList
  *  : classicalArgumentList | expressionList
- */
-class CalibrationArgument extends AstNode {}
-
-/**
- * Class representing a calibration definition.
- *
- * calibrationDefinition
- *  : `defcal` Identifier
- *  (LPAREN calibrationArgumentList? RPAREN)? identifierList
  *  returnSignature? LBRACE .*? RBRACE
  */
-class CalibrationDefinition extends Statement {
-  name: Identifier;
-  identifierList: Array<Identifier>;
-  calibrationArgumentList: Array<CalibrationArgument> | null;
-  constructor(
-    name: Identifier,
-    identifierList: Array<Identifier>,
-    calibrationArgumentList?: Array<CalibrationArgument>,
-  ) {
-    super();
-    this.name = name;
-    this.identifierList = identifierList;
-    this.calibrationArgumentList = calibrationArgumentList
-      ? calibrationArgumentList
-      : null;
-  }
-}
+// class CalibrationDefinition extends Statement {
+//   name: Identifier;
+//   identifierList: Array<Identifier>;
+//   calibrationArgumentList: Array<CalibrationArgument> | null;
+//   constructor(
+//     name: Identifier,
+//     identifierList: Array<Identifier>,
+//     calibrationArgumentList?: Array<CalibrationArgument>,
+//   ) {
+//     super();
+//     this.name = name;
+//     this.identifierList = identifierList;
+//     this.calibrationArgumentList = calibrationArgumentList
+//       ? calibrationArgumentList
+//       : null;
+//   }
+// }
 
 /**
  * Class representing a branching if statement.
@@ -721,29 +805,38 @@ class SwitchStatement extends Statement {
 export {
   AstNode,
   Statement,
+  Expression,
+  Parameters,
   CalibrationGrammarDeclaration,
   Include,
   Version,
-  FloatTypeWidth,
   FloatType,
   BoolType,
   IntType,
   UIntType,
   BitType,
-  BitArrayType,
+  DurationType,
   Range,
   Identifier,
   SubscriptedIdentifier,
   Pi,
   Euler,
   Tau,
+  MathFunctionTypes,
+  MathFunction,
+  TrigFunctionTypes,
+  TrigFunction,
   IntegerLiteral,
+  NumericLiteral,
+  FloatLiteral,
   BooleanLiteral,
   BitstringLiteral,
   DurationUnit,
   DurationLiteral,
   UnaryOp,
   Unary,
+  ArithmeticOp,
+  Arithmetic,
   BinaryOp,
   Binary,
   Cast,
@@ -767,7 +860,6 @@ export {
   SubroutineBlock,
   QuantumGateDefinition,
   SubroutineDefinition,
-  CalibrationDefinition,
   BranchingStatement,
   ForLoopStatement,
   WhileLoopStatement,
@@ -777,4 +869,5 @@ export {
   IODeclaration,
   DefaultCase,
   SwitchStatement,
+  ClassicalType,
 };
