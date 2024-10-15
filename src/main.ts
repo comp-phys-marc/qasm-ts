@@ -1,17 +1,20 @@
-import Parser from "./parser";
-import Lexer from "./lexer";
 import * as fs from "fs";
+import { OpenQASMVersion, OpenQASMMajorVersion } from "./version";
+import { lex } from "./lexer";
+import { parse } from "./parser";
 
 /**
  * Returns the abstract syntax tree for a given string of QASM code.
  * @param qasm - The code string.
  * @return The corresponding AST.
  */
-export function parseString(qasm: string) {
-  const lexer = new Lexer(qasm, 0);
-  const tokens = lexer.lex();
-  const parser = new Parser(tokens, lexer.version);
-  const ast = parser.parse();
+export function parseString(
+  qasm: string,
+  version?: number | OpenQASMVersion | OpenQASMMajorVersion,
+) {
+  const tokens = lex(qasm, undefined, version);
+  console.log(tokens);
+  const ast = parse(tokens, version);
   return ast;
 }
 
@@ -20,6 +23,9 @@ export function parseString(qasm: string) {
  * @param file - The file location.
  * @return The corresponding AST.
  */
-export function parse(file: string) {
-  return parseString(fs.readFileSync(file, "utf8"));
+export function parseFile(
+  file: string,
+  version?: number | OpenQASMVersion | OpenQASMMajorVersion,
+) {
+  return parseString(fs.readFileSync(file, "utf8"), version);
 }
