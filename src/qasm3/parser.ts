@@ -587,10 +587,11 @@ class Parser {
   ): [AssignmentStatement, number] {
     let consumed = 0;
     const [lhs, lhsConsumed] = this.unaryExpression(tokens);
-    consumed += lhsConsumed + 1;
+    consumed += lhsConsumed;
 
     // Handle compound assignments
     if (tokens[consumed][0] === Token.CompoundArithmeticOp) {
+      consumed++;
       const operator = tokens[lhsConsumed][1].toString();
       const [rhs, rhsConsumed] = this.binaryExpression(tokens.slice(consumed));
       consumed += rhsConsumed;
