@@ -113,7 +113,8 @@ class Lexer {
         trimmedLine !== "}" &&
         !trimmedLine.includes(";") &&
         !trimmedLine.startsWith("if") &&
-        !trimmedLine.startsWith("else")
+        !trimmedLine.startsWith("else") &&
+        !trimmedLine.startsWith("for")
       ) {
         return [false, i + 1, lines[i]];
       }
