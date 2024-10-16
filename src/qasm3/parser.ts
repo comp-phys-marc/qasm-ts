@@ -71,6 +71,7 @@ import {
   QuantumReset,
   QuantumDelay,
   ReturnStatement,
+  ProgramBlock,
   QuantumBlock,
   SubroutineBlock,
   QuantumGateDefinition,
@@ -172,7 +173,7 @@ class Parser {
     let i = 0;
     while (i < this.tokens.length - 1) {
       this.index = i;
-      const nodes = this.parseNode(this.tokens.slice(i));
+      const nodes = this.parseNode(this.tokens.slice(i))[0];
       ast = ast.concat(nodes ? nodes : []);
       while (!this.matchNext(this.tokens.slice(i), [Token.Semicolon])) {
         if (this.matchNext(this.tokens.slice(i), [Token.LCParen])) {
@@ -193,29 +194,46 @@ class Parser {
   * @param tokens - Remaining tokens to parse.
   * @param allowVariables - Whether encountered identifiers should be consider
       variable initializations or references.
-  * @return A set of AST nodes.
+  * @return A set of AST nodes and the number of consumed tokens.
   */
   parseNode(
     tokens: Array<[Token, (number | string)?]>,
     allowVariables = true,
-  ): Array<AstNode> {
+  ): [Array<AstNode>, number] {
     const token = tokens[0];
     switch (token[0]) {
-      case Token.DefcalGrammar:
-        return [this.defcalGrammarDeclaration(tokens.slice(1))];
-      case Token.Include:
-        return [this.include(tokens.slice(1))];
-      case Token.OpenQASM:
-        return [this.versionHeader(tokens.slice(1))];
-      case Token.Const:
-        return [this.classicalDeclaration(tokens.slice(1), true)];
+      case Token.DefcalGrammar: {
+        const [defcalGrammarNode, consumed] =
+          this.defcalGrammarDeclaration(tokens);
+        return [[defcalGrammarNode], consumed];
+      }
+      case Token.Include: {
+        const [includeNode, consumed] = this.include(tokens);
+        return [[includeNode], consumed];
+      }
+      case Token.OpenQASM: {
+        const [qasmNode, consumed] = this.versionHeader(tokens);
+        return [[qasmNode], consumed];
+      }
+      case Token.Const: {
+        const [constNode, consumed] = this.classicalDeclaration(
+          tokens.slice(1),
+          true,
+        );
+        return [[constNode], consumed + 1];
+      }
       case Token.Float:
       case Token.Int:
       case Token.UInt:
       case Token.Bool:
       case Token.Bit:
-      case Token.Duration:
-        return [this.classicalDeclaration(tokens)];
+      case Token.Duration: {
+        const [classicalNode, consumed] = this.classicalDeclaration(
+          tokens,
+          false,
+        );
+        return [[classicalNode], consumed];
+      }
       case Token.Ceiling:
       case Token.Exp:
       case Token.Floor:
@@ -225,23 +243,38 @@ class Parser {
       case Token.Pow:
       case Token.Sqrt:
       case Token.Rotr:
-      case Token.Rotl:
-        return [
-          this.createMathOrTrigFunction(
-            token[0],
-            this.binaryExpression(tokens.slice(1)),
-          ),
-        ];
+      case Token.Rotl: {
+        const [expr, exprConsumed] = this.binaryExpression(tokens.slice(1));
+        let consumed = exprConsumed + 1;
+        const [math, mathConsumed] = this.createMathOrTrigFunction(
+          token[0],
+          expr,
+        );
+        consumed += mathConsumed;
+        return [[math], consumed];
+      }
+      case Token.If: {
+        const [ifNode, ifConsumed] = this.ifStatement(tokens);
+        return [[ifNode], ifConsumed];
+      }
       case Token.Id:
         if (
           this.matchNext(tokens.slice(1), [Token.EqualsAssmt]) ||
           this.matchNext(tokens.slice(1), [Token.CompoundArithmeticOp])
         ) {
-          return [this.assignment(tokens)];
+          const [assignmentNode, consumed] = this.assignment(tokens);
+          return [[assignmentNode], consumed];
         } else if (allowVariables) {
           const [expr, consumed] = this.binaryExpression(tokens);
           if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
-            return [expr];
+            return [[expr], consumed + 1];
+          } else {
+            throwParserError(
+              MissingSemicolonError,
+              tokens[consumed],
+              this.index + consumed,
+              "expected semicolon",
+            );
           }
         }
     }
@@ -279,18 +312,24 @@ class Parser {
    *   DEFCALGRAMMAR StringLiteral SEMICOLON
    *
    * @param tokens - Remaining tokens to parse.
-   * @return The parsed CalibrationGrammarDeclaration AstNode node.
+   * @return The parsed CalibrationGrammarDeclaration AstNode node and the number of consumed tokens.
    */
   defcalGrammarDeclaration(
     tokens: Array<[Token, (number | string)?]>,
-  ): CalibrationGrammarDeclaration {
-    if (this.matchNext(tokens, [Token.String, Token.Semicolon])) {
-      return new CalibrationGrammarDeclaration(tokens[0][1].toString());
+  ): [CalibrationGrammarDeclaration, number] {
+    const consumed = 1;
+    if (
+      this.matchNext(tokens.slice(consumed), [Token.String, Token.Semicolon])
+    ) {
+      return [
+        new CalibrationGrammarDeclaration(tokens[0][1].toString()),
+        consumed + 2,
+      ];
     }
     throwParserError(
       BadStringLiteralError,
-      tokens[0],
-      this.index,
+      tokens[consumed],
+      this.index + consumed,
       "expected string literal following `defcalgrammar` keyword",
     );
   }
@@ -299,27 +338,27 @@ class Parser {
    * Parses a classical type declaration.
    * @param tokens - Remaining tokens to parse.
    * @param isConst - Whether the declaration is for a constant, defaults to False.
-   * @return The parsed ClassicalDeclaration AstNode.
+   * @return The parsed ClassicalDeclaration AstNode and the number of consumed tokens.
    */
   classicalDeclaration(
     tokens: Array<[Token, (number | string)?]>,
     isConst?: boolean,
-  ): ClassicalDeclaration {
+  ): [ClassicalDeclaration, number] {
     const typeToken = tokens[0][0];
     const isConstParam = isConst ? isConst : false;
     let width: Expression | undefined;
     let consumed = 1;
 
     // Check if there's a width or size specification
-    if (this.matchNext(tokens.slice(1), [Token.LSParen])) {
+    if (this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
       const [widthExpr, widthConsumed] = this.binaryExpression(tokens.slice(2));
       width = widthExpr;
       consumed += widthConsumed + 1;
       if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
         throwParserError(
           MissingBraceError,
-          tokens[0],
-          this.index,
+          tokens[consumed],
+          this.index + consumed,
           "expected closing bracket ] for type width",
         );
       }
@@ -358,7 +397,7 @@ class Parser {
         throwParserError(
           BadClassicalTypeError,
           tokens[consumed],
-          this.index,
+          this.index + consumed,
           "invalid duration unit",
         );
       }
@@ -367,18 +406,21 @@ class Parser {
     if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
       throwParserError(
         MissingSemicolonError,
-        tokens[0],
-        this.index,
+        tokens[consumed],
+        this.index + consumed,
         "expected semicolon",
       );
     }
 
-    return new ClassicalDeclaration(
-      type,
-      identifier as Identifier,
-      initialValue,
-      isConstParam,
-    );
+    return [
+      new ClassicalDeclaration(
+        type,
+        identifier as Identifier,
+        initialValue,
+        isConstParam,
+      ),
+      consumed,
+    ];
   }
 
   /**
@@ -439,8 +481,8 @@ class Parser {
           if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
             throwParserError(
               MissingBraceError,
-              token,
-              this.index,
+              tokens[consumed],
+              this.index + consumed,
               "expected closing bracket ] for subscripted identifier",
             );
           }
@@ -538,56 +580,56 @@ class Parser {
   /**
    * Parses an assignment statement.
    * @param tokens - Remaining tokens to parse.
-   * @return The parsed AssignmentStatement AstNode.
+   * @return The parsed AssignmentStatement AstNode and the number of consumed tokens.
    */
-  assignment(tokens: Array<[Token, (number | string)?]>): AssignmentStatement {
+  assignment(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [AssignmentStatement, number] {
+    let consumed = 0;
     const [lhs, lhsConsumed] = this.unaryExpression(tokens);
+    consumed += lhsConsumed + 1;
 
     // Handle compound assignments
-    if (tokens[lhsConsumed][0] === Token.CompoundArithmeticOp) {
+    if (tokens[consumed][0] === Token.CompoundArithmeticOp) {
       const operator = tokens[lhsConsumed][1].toString();
-      const [rhs, rhsConsumed] = this.binaryExpression(
-        tokens.slice(lhsConsumed + 1),
-      );
+      const [rhs, rhsConsumed] = this.binaryExpression(tokens.slice(consumed));
+      consumed += rhsConsumed;
 
-      if (
-        !this.matchNext(tokens.slice(lhsConsumed + rhsConsumed + 1), [
-          Token.Semicolon,
-        ])
-      ) {
+      if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
         throwParserError(
           MissingSemicolonError,
-          tokens[lhsConsumed + rhsConsumed + 1],
-          this.index,
+          tokens[consumed],
+          this.index + consumed,
           "expected semicolon",
         );
       }
 
       const arithmeticOp = operator.slice(0, -1) as ArithmeticOp;
       const arithmeticExpression = new Arithmetic(arithmeticOp, lhs, rhs);
-      return new AssignmentStatement(
-        lhs as SubscriptedIdentifier,
-        arithmeticExpression,
-      );
+      return [
+        new AssignmentStatement(
+          lhs as SubscriptedIdentifier,
+          arithmeticExpression,
+        ),
+        consumed,
+      ];
     }
 
-    const [rhs, rhsConsumed] = this.binaryExpression(
-      tokens.slice(lhsConsumed + 1),
-    );
-    if (
-      !this.matchNext(tokens.slice(lhsConsumed + rhsConsumed + 1), [
-        Token.Semicolon,
-      ])
-    ) {
+    const [rhs, rhsConsumed] = this.binaryExpression(tokens.slice(consumed));
+    consumed += rhsConsumed;
+    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
       throwParserError(
         MissingSemicolonError,
-        tokens[0],
-        this.index,
+        tokens[consumed],
+        this.index + consumed,
         "expected semicolon",
       );
     }
 
-    return new AssignmentStatement(lhs as SubscriptedIdentifier, rhs);
+    return [
+      new AssignmentStatement(lhs as SubscriptedIdentifier, rhs),
+      consumed,
+    ];
   }
 
   /**
@@ -649,20 +691,112 @@ class Parser {
   }
 
   /**
+   * Parses a branching condition (if) statement.
+   * @param tokens - Tokens to parse.
+   * @return A BranchingStatement node representing the if statement and the number of tokens consumed.
+   */
+  ifStatement(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [BranchingStatement, number] {
+    let consumed = 1;
+    if (!this.matchNext(tokens.slice(consumed), [Token.LParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected opening parenthesis after if",
+      );
+    }
+    consumed++;
+
+    const [condition, conditionConsumed] = this.binaryExpression(
+      tokens.slice(consumed),
+    );
+    consumed += conditionConsumed;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected closing parenthesis after if statement condition",
+      );
+    }
+    consumed++;
+
+    const [trueBody, trueBodyConsumed] = this.programBlock(
+      tokens.slice(consumed),
+    );
+    consumed += trueBodyConsumed;
+
+    let falseBody: ProgramBlock | null = null;
+    if (this.matchNext(tokens.slice(consumed), [Token.Else])) {
+      consumed++;
+      const [elseBody, elseBodyConsumed] = this.programBlock(
+        tokens.slice(consumed),
+      );
+      falseBody = elseBody;
+      consumed += elseBodyConsumed;
+    }
+
+    return [new BranchingStatement(condition, trueBody, falseBody), consumed];
+  }
+
+  /**
+   * Parses a program block.
+   * @param tokens - Tokens to parse.
+   * @return A ProgramBlock node representing the program block body statements.
+   */
+  programBlock(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [ProgramBlock, number] {
+    const statements: (Statement | Expression)[] = [];
+    let consumed = 0;
+
+    if (this.matchNext(tokens, [Token.LCParen])) {
+      consumed++;
+      while (!this.matchNext(tokens.slice(consumed), [Token.RCParen])) {
+        const [node, nodeConsumed] = this.parseNode(tokens.slice(consumed));
+        if (node) {
+          statements.push(node);
+        }
+        consumed += nodeConsumed;
+        if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+          consumed++;
+        }
+      }
+      consumed++;
+    } else {
+      const [node, nodeConsumed] = this.parseNode(tokens.slice(consumed));
+      if (node) {
+        statements.push(node);
+      }
+      consumed += nodeConsumed;
+      if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+        consumed++;
+      }
+    }
+    return [new ProgramBlock(statements), consumed];
+  }
+
+  /**
    * Parses an include statement.
    * @param tokens - Tokens to parse.
-   * @return An Include node representing the include statement.
+   * @return An Include node representing the include statement and the number of consumed tokens.
    */
-  include(tokens: Array<[Token, (number | string)?]>): Include {
+  include(tokens: Array<[Token, (number | string)?]>): [Include, number] {
     let filename: string;
-    if (this.matchNext(tokens, [Token.String, Token.Semicolon])) {
+    const consumed = 1;
+    if (
+      this.matchNext(tokens.slice(consumed), [Token.String, Token.Semicolon])
+    ) {
       filename = tokens[0][1].toString();
-      return new Include(filename);
+      return [new Include(filename), consumed + 2];
     }
     throwParserError(
       BadStringLiteralError,
-      tokens[0],
-      this.index,
+      tokens[consumed],
+      this.index + consumed,
       "expected string literal following `include` keyword",
     );
   }
@@ -670,22 +804,25 @@ class Parser {
   /**
    * Parses the version header and sets the parser version.
    * @param tokens - Tokens to parse.
-   * @return A Version node representing the version statement.
+   * @return A Version node representing the version statement and the number of consumed tokens.
    */
-  versionHeader(tokens: Array<[Token, (number | string)?]>): Version {
+  versionHeader(tokens: Array<[Token, (number | string)?]>): [Version, number] {
     let version: OpenQASMVersion;
-    if (this.matchNext(tokens, [Token.NNInteger, Token.Semicolon])) {
+    let consumed = 1;
+    const slicedTokens = tokens.slice(consumed);
+    if (this.matchNext(slicedTokens, [Token.NNInteger, Token.Semicolon])) {
       version = new OpenQASMVersion(Number(tokens[0][1]));
       if (!version.isVersion3()) {
         throwParserError(
           UnsupportedOpenQASMVersionError,
-          tokens[0],
-          this.index,
+          tokens[consumed],
+          this.index + consumed,
           "expected QASM version 3",
         );
       }
-      return new Version(version);
-    } else if (this.matchNext(tokens, [Token.Real, Token.Semicolon])) {
+      consumed += 2;
+      return [new Version(version), consumed];
+    } else if (this.matchNext(slicedTokens, [Token.Real, Token.Semicolon])) {
       const versionSplits = tokens[0][1].toString().split(".");
       version = new OpenQASMVersion(
         Number(versionSplits[0]),
@@ -694,17 +831,18 @@ class Parser {
       if (!version.isVersion3()) {
         throwParserError(
           UnsupportedOpenQASMVersionError,
-          tokens[0],
-          this.index,
+          tokens[consumed],
+          this.index + consumed,
           "expected QASM version 3",
         );
       }
-      return new Version(version);
+      consumed += 2;
+      return [new Version(version), consumed];
     }
     throwParserError(
       UnsupportedOpenQASMVersionError,
-      tokens[0],
-      this.index,
+      tokens[consumed],
+      this.index + consumed,
       "expected QASM version 3",
     );
   }
@@ -715,7 +853,7 @@ class Parser {
    * @width - The type's width or size, if applicable.
    * @return The created ClassicalType.
    */
-  private createClassicalType(
+  createClassicalType(
     token: Token,
     width?: Expression | number,
   ): ClassicalType {
@@ -746,45 +884,45 @@ class Parser {
    * Creates a math or trigonometric function node.
    * @param token - The token representing the function.
    * @param expr - The expression to which the function is applied.
-   * @return The created MathFunction or TrigFunction node.
+   * @return The created MathFunction or TrigFunction node and the number of consumed tokens.
    */
-  private createMathOrTrigFunction(
+  createMathOrTrigFunction(
     token: Token,
     expr: Expression,
-  ): MathFunction | TrigFunction {
+  ): [MathFunction | TrigFunction, number] {
     switch (token) {
       case Token.Arccos:
-        return new TrigFunction(TrigFunctionTypes.ARCCOS, expr);
+        return [new TrigFunction(TrigFunctionTypes.ARCCOS, expr), 1];
       case Token.Arcsin:
-        return new TrigFunction(TrigFunctionTypes.ARCSIN, expr);
+        return [new TrigFunction(TrigFunctionTypes.ARCSIN, expr), 1];
       case Token.Arctan:
-        return new TrigFunction(TrigFunctionTypes.ARCTAN, expr);
+        return [new TrigFunction(TrigFunctionTypes.ARCTAN, expr), 1];
       case Token.Cos:
-        return new TrigFunction(TrigFunctionTypes.COS, expr);
+        return [new TrigFunction(TrigFunctionTypes.COS, expr), 1];
       case Token.Sin:
-        return new TrigFunction(TrigFunctionTypes.SIN, expr);
+        return [new TrigFunction(TrigFunctionTypes.SIN, expr), 1];
       case Token.Tan:
-        return new TrigFunction(TrigFunctionTypes.TAN, expr);
+        return [new TrigFunction(TrigFunctionTypes.TAN, expr), 1];
       case Token.Ceiling:
-        return new MathFunction(MathFunctionTypes.CEILING, expr);
+        return [new MathFunction(MathFunctionTypes.CEILING, expr), 1];
       case Token.Exp:
-        return new MathFunction(MathFunctionTypes.EXP, expr);
+        return [new MathFunction(MathFunctionTypes.EXP, expr), 1];
       case Token.Floor:
-        return new MathFunction(MathFunctionTypes.FLOOR, expr);
+        return [new MathFunction(MathFunctionTypes.FLOOR, expr), 1];
       case Token.Log:
-        return new MathFunction(MathFunctionTypes.LOG, expr);
+        return [new MathFunction(MathFunctionTypes.LOG, expr), 1];
       case Token.Mod:
-        return new MathFunction(MathFunctionTypes.MOD, expr);
+        return [new MathFunction(MathFunctionTypes.MOD, expr), 1];
       case Token.Popcount:
-        return new MathFunction(MathFunctionTypes.POPCOUNT, expr);
+        return [new MathFunction(MathFunctionTypes.POPCOUNT, expr), 1];
       case Token.Pow:
-        return new MathFunction(MathFunctionTypes.POW, expr);
+        return [new MathFunction(MathFunctionTypes.POW, expr), 1];
       case Token.Rotl:
-        return new MathFunction(MathFunctionTypes.ROTL, expr);
+        return [new MathFunction(MathFunctionTypes.ROTL, expr), 1];
       case Token.Rotr:
-        return new MathFunction(MathFunctionTypes.ROTR, expr);
+        return [new MathFunction(MathFunctionTypes.ROTR, expr), 1];
       case Token.Sqrt:
-        return new MathFunction(MathFunctionTypes.SQRT, expr);
+        return [new MathFunction(MathFunctionTypes.SQRT, expr), 1];
       default:
         throwParserError(
           BadExpressionError,
