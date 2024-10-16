@@ -575,7 +575,7 @@ class QuantumDelay extends QuantumInstrcution {
 }
 
 /** Class representing a return statement. */
-class ReturnStatement extends AstNode {
+class ReturnStatement extends Statement {
   expression: Expression | QuantumMeasurement | null;
   constructor(expression?: Expression | QuantumMeasurement) {
     super();
@@ -591,8 +591,8 @@ class ReturnStatement extends AstNode {
  *  | LBRACE(statement | controlDirective) * RBRACEj
  */
 class ProgramBlock extends AstNode {
-  statements: Array<Statement>;
-  constructor(statements: Array<Statement>) {
+  statements: Array<Statement | Expression>;
+  constructor(statements: Array<Statement | Expression>) {
     super();
     this.statements = statements;
   }
@@ -856,6 +856,7 @@ export {
   QuantumReset,
   QuantumDelay,
   ReturnStatement,
+  ProgramBlock,
   QuantumBlock,
   SubroutineBlock,
   QuantumGateDefinition,
