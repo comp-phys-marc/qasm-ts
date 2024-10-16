@@ -179,7 +179,7 @@ const lookupMap: object = {
   include: Token.Include,
   if: Token.If,
   opaque: Token.Opaque,
-  defcalcalgrammar: Token.DefcalGrammar,
+  defcalgrammar: Token.DefcalGrammar,
   float: Token.Float,
   bool: Token.Bool,
   true: Token.BoolLiteral,
