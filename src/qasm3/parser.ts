@@ -18,6 +18,7 @@ import {
   ReturnErrorConstructor,
   MissingSemicolonError,
   MissingBraceError,
+  BadLoopError,
 } from "../errors";
 import {
   AstNode,
@@ -202,6 +203,8 @@ class Parser {
   ): [Array<AstNode>, number] {
     const token = tokens[0];
     switch (token[0]) {
+      case Token.EndOfFile:
+        return [[], 0];
       case Token.DefcalGrammar: {
         const [defcalGrammarNode, consumed] =
           this.defcalGrammarDeclaration(tokens);
@@ -257,6 +260,10 @@ class Parser {
         const [ifNode, ifConsumed] = this.ifStatement(tokens);
         return [[ifNode], ifConsumed];
       }
+      case Token.For: {
+        const [forNode, forConsumed] = this.forLoopStatement(tokens);
+        return [[forNode], forConsumed];
+      }
       case Token.Id:
         if (
           this.matchNext(tokens.slice(1), [Token.EqualsAssmt]) ||
@@ -277,6 +284,9 @@ class Parser {
             );
           }
         }
+        break;
+      default:
+        return [[], 1];
     }
   }
 
@@ -344,28 +354,13 @@ class Parser {
     tokens: Array<[Token, (number | string)?]>,
     isConst?: boolean,
   ): [ClassicalDeclaration, number] {
-    const typeToken = tokens[0][0];
     const isConstParam = isConst ? isConst : false;
-    let width: Expression | undefined;
-    let consumed = 1;
+    let consumed = 0;
 
-    // Check if there's a width or size specification
-    if (this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
-      const [widthExpr, widthConsumed] = this.binaryExpression(tokens.slice(2));
-      width = widthExpr;
-      consumed += widthConsumed + 1;
-      if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
-        throwParserError(
-          MissingBraceError,
-          tokens[consumed],
-          this.index + consumed,
-          "expected closing bracket ] for type width",
-        );
-      }
-      consumed++;
-    }
+    const [classicalType, classicalTypeConsumed] =
+      this.parseClassicalType(tokens);
+    consumed += classicalTypeConsumed;
 
-    const type = this.createClassicalType(typeToken, width);
     const [identifier, idConsumed] = this.unaryExpression(
       tokens.slice(consumed),
     );
@@ -381,7 +376,7 @@ class Parser {
       consumed += valueConsumed;
     }
 
-    if (typeToken === Token.Duration) {
+    if (classicalType instanceof DurationType) {
       if (
         this.matchNext(tokens.slice(consumed), [Token.Id]) &&
         Object.values(DurationUnit).includes(
@@ -414,7 +409,7 @@ class Parser {
 
     return [
       new ClassicalDeclaration(
-        type,
+        classicalType,
         identifier as Identifier,
         initialValue,
         isConstParam,
@@ -475,7 +470,7 @@ class Parser {
         if (this.matchNext(tokens.slice(1), [Token.LSParen])) {
           const identifier = new Identifier(token[1].toString());
           const [subscript, subscriptConsumed] = this.parseSubscript(
-            tokens.slice(2),
+            tokens.slice(1),
           );
           consumed += subscriptConsumed + 1;
           if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
@@ -634,32 +629,34 @@ class Parser {
   }
 
   /**
-   * Parses a subscript expression.
+   * Parses a subscript expression as a Range.
    * @param tokens - Remaining tokens to parse.
    * @return A tuple containing the parsed Expression or Range and the number of tokens consumed.
    */
   parseSubscript(
     tokens: Array<[Token, (number | string)?]>,
   ): [Expression | Range, number] {
-    if (this.matchNext(tokens, [Token.Colon])) {
+    let consumed = 1;
+    if (this.matchNext(tokens.slice(consumed), [Token.Colon])) {
       // Full range
       return [new Range(null, null), 1];
     }
 
     const [start, startConsumed] = this.binaryExpression(tokens);
+    consumed += startConsumed;
 
-    if (this.matchNext(tokens.slice(startConsumed), [Token.Colon])) {
-      if (this.matchNext(tokens.slice(startConsumed + 1), [Token.RSParen])) {
+    if (this.matchNext(tokens.slice(consumed), [Token.Colon])) {
+      consumed++;
+      if (this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
         // Range with only start
-        return [new Range(start, null), startConsumed + 1];
+        return [new Range(start, null), consumed];
       }
-      const [end, endConsumed] = this.binaryExpression(
-        tokens.slice(startConsumed + 1),
-      );
-      return [new Range(start, end), startConsumed + endConsumed + 1];
+      const [end, endConsumed] = this.binaryExpression(tokens.slice(consumed));
+      consumed += endConsumed;
+      return [new Range(start, end), consumed];
     }
 
-    return [start, startConsumed];
+    return [start, consumed];
   }
 
   /**
@@ -744,9 +741,72 @@ class Parser {
   }
 
   /**
+   * Parses a for loop.
+   * @param tokens - Tokens to parse.
+   * @return A ForLoopStatement node and the number of tokens consumed.
+   */
+  forLoopStatement(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [ForLoopStatement, number] {
+    let consumed = 1;
+
+    // Parse the type of the loop variable
+    const [loopVarType, loopVarTypeConsumed] = this.parseClassicalType(
+      tokens.slice(consumed),
+    );
+    consumed += loopVarTypeConsumed;
+
+    // Expect an identifier (loop variable)
+    if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+      throwParserError(
+        BadLoopError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected identifier for loop variable",
+      );
+    }
+    const [loopVar, loopVarConsumed] = this.unaryExpression(
+      tokens.slice(consumed),
+    );
+    if (!(loopVar instanceof Identifier)) {
+      throwParserError(
+        BadLoopError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected identifier for loop variable",
+      );
+    }
+    consumed += loopVarConsumed;
+
+    // Expect `in` keyword
+    if (!this.matchNext(tokens.slice(consumed), [Token.In])) {
+      throwParserError(
+        BadLoopError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected `in` keyword in for loop",
+      );
+    }
+    consumed++;
+
+    const [indexSet, indexSetConsumed] = this.parseSetDeclaration(
+      tokens.slice(consumed),
+    );
+    consumed += indexSetConsumed;
+
+    const [body, bodyConsumed] = this.programBlock(tokens.slice(consumed));
+    consumed += bodyConsumed;
+
+    return [
+      new ForLoopStatement(indexSet, loopVarType, loopVar as Identifier, body),
+      consumed,
+    ];
+  }
+
+  /**
    * Parses a program block.
    * @param tokens - Tokens to parse.
-   * @return A ProgramBlock node representing the program block body statements.
+   * @return A ProgramBlock node and the number of tokens consumed.
    */
   programBlock(
     tokens: Array<[Token, (number | string)?]>,
@@ -846,6 +906,93 @@ class Parser {
       this.index + consumed,
       "expected QASM version 3",
     );
+  }
+
+  /**
+   * Parses a classical type.
+   * @param token - The token that represents the type.
+   * @return The ClassicalType and the number of consumed tokens.
+   */
+  parseClassicalType(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [ClassicalType, number] {
+    const typeToken = tokens[0][0];
+    let consumed = 1;
+    let width: Expression | undefined;
+
+    // Check if there's a width or size specification
+    if (this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
+      consumed++;
+      const [widthExpr, widthConsumed] = this.binaryExpression(
+        tokens.slice(consumed),
+      );
+      width = widthExpr;
+      consumed += widthConsumed;
+      if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+        throwParserError(
+          MissingBraceError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected closing bracket ] for type width",
+        );
+      }
+      consumed++;
+    }
+    return [this.createClassicalType(typeToken, width), consumed];
+  }
+
+  /**
+   * Parses a set declaration.
+   * @param token - The token that represents the type.
+   * @return The resulting Identifier, IndexSet, or Range node and the number of consumed tokens.
+   */
+  parseSetDeclaration(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [Expression | IndexSet | Range, number] {
+    if (this.matchNext(tokens, [Token.Id])) {
+      const [identifier, identifierConsumed] = this.unaryExpression(tokens);
+      return [identifier as Identifier, identifierConsumed];
+    } else if (this.matchNext(tokens, [Token.LCParen])) {
+      return this.parseIndexSet(tokens);
+    } else if (this.matchNext(tokens, [Token.LSParen])) {
+      return this.parseSubscript(tokens);
+    } else {
+      return this.binaryExpression(tokens);
+    }
+  }
+
+  /**
+   * Parses an index set.
+   * @param token - The token that represents the type.
+   * @return The resulting Identifier, IndexSet, or Range node and the number of consumed tokens.
+   */
+  parseIndexSet(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [IndexSet, number] {
+    let consumed = 1;
+    const values: Expression[] = [];
+
+    while (!this.matchNext(tokens.slice(consumed), [Token.RCParen])) {
+      const [expr, exprConsumed] = this.binaryExpression(
+        tokens.slice(consumed),
+      );
+      values.push(expr);
+      consumed += exprConsumed;
+
+      if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
+        consumed++;
+      } else if (!this.matchNext(tokens.slice(consumed), [Token.RCParen])) {
+        throwParserError(
+          BadExpressionError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected comma or closing curly brace in index set",
+        );
+      }
+    }
+    consumed++;
+
+    return [new IndexSet(values), consumed];
   }
 
   /**
