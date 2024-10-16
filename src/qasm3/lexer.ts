@@ -269,7 +269,15 @@ class Lexer {
       case "*":
         if (this.peekEq("*")) {
           this.readChar();
-          return [Token.ArithmeticOp, "**"];
+          if (this.peekEq("=")) {
+            this.readChar();
+            return [Token.CompoundArithmeticOp, "**="];
+          } else {
+            return [Token.ArithmeticOp, "**"];
+          }
+        } else if (this.peekEq("=")) {
+          this.readChar();
+          return [Token.CompoundArithmeticOp, "*="];
         } else {
           return [Token.ArithmeticOp, "*"];
         }
@@ -277,17 +285,32 @@ class Lexer {
         if (this.peekEq("/")) {
           this.skipComment();
           return;
+        } else if (this.peekEq("=")) {
+          this.readChar();
+          return [Token.CompoundArithmeticOp, "/="];
         } else {
           return [Token.ArithmeticOp, "/"];
         }
       case "%":
-        return [Token.ArithmeticOp, "%"];
+        if (this.peekEq("=")) {
+          this.readChar();
+          return [Token.CompoundArithmeticOp, "%="];
+        } else {
+          return [Token.ArithmeticOp, "%"];
+        }
       case "+":
+        if (this.peekEq("=")) {
+          this.readChar();
+          return [Token.CompoundArithmeticOp, "+="];
+        }
         return [Token.ArithmeticOp, "+"];
       case "-":
         if (this.peekEq(">")) {
           this.readChar();
           return [Token.Arrow];
+        } else if (this.peekEq("=")) {
+          this.readChar();
+          return [Token.CompoundArithmeticOp, "-="];
         } else {
           return [Token.ArithmeticOp, "-"];
         }
@@ -356,18 +379,18 @@ class Lexer {
         if (this.peekEq("b") || this.peekEq("B")) {
           const char = this.readChar(1);
           const binaryLit = this.readIdentifier();
-          return[Token.BinaryLiteral, `0${char}${binaryLit}`];
+          return [Token.BinaryLiteral, `0${char}${binaryLit}`];
         } else if (this.peekEq("o") || this.peekEq("O")) {
           const char = this.readChar(1);
           const octalLit = this.readIdentifier();
-          return[Token.OctalLiteral, `0${char}${octalLit}`];
+          return [Token.OctalLiteral, `0${char}${octalLit}`];
         } else if (this.peekEq("x") || this.peekEq("X")) {
           const char = this.readChar(1);
           const hexLit = this.readIdentifier();
-          return[Token.HexLiteral, `0${char}${hexLit}`];
+          return [Token.HexLiteral, `0${char}${hexLit}`];
         }
         return this.readKeywordOrIdentifier(char);
-            case "O":
+      case "O":
         if (
           this.input[this.cursor].toLowerCase() == "p" &&
           this.input[this.cursor + 1].toLowerCase() == "e" &&

@@ -81,85 +81,87 @@ enum Token {
   HexLiteral,
   // 40; arithmetic operators
   ArithmeticOp,
-  // 41; boolean literal value
+  // 41; compound arithmetic operators
+  CompoundArithmeticOp,
+  // 42; boolean literal value
   BoolLiteral,
-  // 42; duration keyword
+  // 43; duration keyword
   Duration,
-  // 43; unary operator
+  // 44; unary operator
   UnaryOp,
-  // 44; binary operator
+  // 45; binary operator
   BinaryOp,
-  // 45; let keyword for aliasing
+  // 46; let keyword for aliasing
   Let,
-  // 46; quantum gate modifier
+  // 47; quantum gate modifier
   QuantumModifier,
-  // 47; delay keyword
+  // 48; delay keyword
   Delay,
-  // 48; return keyword
+  // 49; return keyword
   Return,
-  // 49; def keyword for subroutines
+  // 50; def keyword for subroutines
   Def,
-  // 50; for loop keyword
+  // 51; for loop keyword
   For,
-  // 51; in keyword
+  // 52; in keyword
   In,
-  // 52; while loop keyword
+  // 53; while loop keyword
   While,
-  // 53; break keyword
+  // 54; break keyword
   Break,
-  // 54; continue keyword
+  // 55; continue keyword
   Continue,
-  // 55; input keyword
+  // 56; input keyword
   Input,
-  // 56; output keyword
+  // 57; output keyword
   Output,
-  // 57; switch statement keyword
+  // 58; switch statement keyword
   Switch,
-  // 58; switch case keyword
+  // 59; switch case keyword
   Case,
-  // 59; switch default keyword
+  // 60; switch default keyword
   Default,
-  // 60; defcal keyword
+  // 61; defcal keyword
   Defcal,
-  // 61; constant keywork
+  // 62; constant keywork
   Const,
-  // 62; if statement conditional
+  // 63; if statement conditional
   If,
-  // 63; else keyword
+  // 64; else keyword
   Else,
-  // 64; end keyword
+  // 65; end keyword
   End,
-  // 65; inverse cosine
+  // 66; inverse cosine
   Arccos,
-  // 66; inverse sine
+  // 67; inverse sine
   Arcsin,
-  // 67; inverse tangent
+  // 68; inverse tangent
   Arctan,
-  // 68; ceiling function
+  // 69; ceiling function
   Ceiling,
-  // 69; cosine function
+  // 70; cosine function
   Cos,
-  // 70; exp keyword
+  // 71; exp keyword
   Exp,
-  // 71; floor function
+  // 72; floor function
   Floor,
-  // 72; logarithm base e
+  // 73; logarithm base e
   Log,
-  // 73; modulus
+  // 74; modulus
   Mod,
-  // 74; popcount function
+  // 75; popcount function
   Popcount,
-  // 75; power function
+  // 76; power function
   Pow,
-  // 76; rotate bits left function
+  // 77; rotate bits left function
   Rotl,
-  // 77; rotate bits right function
+  // 78; rotate bits right function
   Rotr,
-  // 78; sine
+  // 79; sine
   Sin,
-  // 79; sqaure root
+  // 80; sqaure root
   Sqrt,
-  // 80; tangent
+  // 81; tangent
   Tan,
 }
 
@@ -228,6 +230,12 @@ const lookupMap: object = {
   "!=": Token.BinaryOp,
   "<<": Token.BinaryOp,
   ">>": Token.BinaryOp,
+  "**=": Token.CompoundArithmeticOp,
+  "/=": Token.CompoundArithmeticOp,
+  "%=": Token.CompoundArithmeticOp,
+  "+=": Token.CompoundArithmeticOp,
+  "-=": Token.CompoundArithmeticOp,
+  "*=": Token.CompoundArithmeticOp,
   arccos: Token.Arccos,
   arcsin: Token.Arcsin,
   arctan: Token.Arctan,
