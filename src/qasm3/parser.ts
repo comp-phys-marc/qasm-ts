@@ -197,7 +197,7 @@ class Parser {
   */
   parseNode(
     tokens: Array<[Token, (number | string)?]>,
-    allowVariables = false,
+    allowVariables = true,
   ): Array<AstNode> {
     const token = tokens[0];
     switch (token[0]) {
@@ -216,6 +216,22 @@ class Parser {
       case Token.Bit:
       case Token.Duration:
         return [this.classicalDeclaration(tokens)];
+      case Token.Ceiling:
+      case Token.Exp:
+      case Token.Floor:
+      case Token.Log:
+      case Token.Mod:
+      case Token.Popcount:
+      case Token.Pow:
+      case Token.Sqrt:
+      case Token.Rotr:
+      case Token.Rotl:
+        return [
+          this.createMathOrTrigFunction(
+            token[0],
+            this.binaryExpression(tokens.slice(1)),
+          ),
+        ];
       case Token.Id:
         if (
           this.matchNext(tokens.slice(1), [Token.EqualsAssmt]) ||
