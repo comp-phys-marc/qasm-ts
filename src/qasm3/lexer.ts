@@ -104,12 +104,16 @@ class Lexer {
   verifyInput = (): [boolean, number | null, string | null] => {
     const lines = this.input.split(/\n|\r(?!\n)|\u2028|\u2029|\r\n/g);
     for (let i = 0; i < lines.length; i++) {
+      const trimmedLine = lines[i].trim();
       if (
-        !lines[i].startsWith("//") &&
-        !(lines[i].length == 0) &&
-        !lines[i].includes("gate") &&
-        !(lines[i].trim() == "{" || lines[i].trim() == "}") &&
-        !lines[i].includes(";")
+        !trimmedLine.startsWith("//") &&
+        trimmedLine.length > 0 &&
+        !trimmedLine.startsWith("gate") &&
+        trimmedLine !== "{" &&
+        trimmedLine !== "}" &&
+        !trimmedLine.includes(";") &&
+        !trimmedLine.startsWith("if") &&
+        !trimmedLine.startsWith("else")
       ) {
         return [false, i + 1, lines[i]];
       }
