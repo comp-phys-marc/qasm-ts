@@ -4,7 +4,6 @@ import { Token, notParam } from "./token";
 import { OpenQASMVersion } from "../version";
 import {
   BadArgumentError,
-  BadIncludeError,
   BadCregError,
   BadQregError,
   BadConditionalError,
@@ -17,6 +16,8 @@ import {
   BadClassicalTypeError,
   BadExpressionError,
   ReturnErrorConstructor,
+  MissingSemicolonError,
+  MissingBraceError,
 } from "../errors";
 import {
   AstNode,
@@ -84,6 +85,8 @@ import {
   DefaultCase,
   SwitchStatement,
   ClassicalType,
+  ArithmeticOp,
+  Arithmetic,
 } from "./ast";
 
 /**
@@ -214,8 +217,11 @@ class Parser {
       case Token.Duration:
         return [this.classicalDeclaration(tokens)];
       case Token.Id:
-        if (this.matchNext(tokens.slice(1), [Token.EqualsAssmt])) {
-          return [this.parseAssignment(tokens)];
+        if (
+          this.matchNext(tokens.slice(1), [Token.EqualsAssmt]) ||
+          this.matchNext(tokens.slice(1), [Token.CompoundArithmeticOp])
+        ) {
+          return [this.assignment(tokens)];
         } else if (allowVariables) {
           const [expr, consumed] = this.binaryExpression(tokens);
           if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
@@ -290,17 +296,15 @@ class Parser {
 
     // Check if there's a width or size specification
     if (this.matchNext(tokens.slice(1), [Token.LSParen])) {
-      const [widthExpr, widthConsumed] = this.binaryExpression(
-        tokens.slice(2),
-      );
+      const [widthExpr, widthConsumed] = this.binaryExpression(tokens.slice(2));
       width = widthExpr;
       consumed += widthConsumed + 1;
       if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
         throwParserError(
-          BadClassicalTypeError,
+          MissingBraceError,
           tokens[0],
           this.index,
-          "expected closing bracket for type width",
+          "expected closing bracket ] for type width",
         );
       }
       consumed++;
@@ -346,7 +350,7 @@ class Parser {
 
     if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
       throwParserError(
-        BadClassicalTypeError,
+        MissingSemicolonError,
         tokens[0],
         this.index,
         "expected semicolon",
@@ -403,7 +407,10 @@ class Parser {
       case Token.Rotl: {
         const [funcExpr, funcConsumed] = this.unaryExpression(tokens.slice(1));
         consumed += funcConsumed;
-        return [this.createMathOrTrigFunction(tokens[0][0], funcExpr), consumed];
+        return [
+          this.createMathOrTrigFunction(tokens[0][0], funcExpr),
+          consumed,
+        ];
       }
       case Token.Id:
         // Handle identifiers and subscripted identifiers
@@ -415,10 +422,10 @@ class Parser {
           consumed += subscriptConsumed + 1;
           if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
             throwParserError(
-              BadExpressionError,
+              MissingBraceError,
               token,
               this.index,
-              "expected closing bracket",
+              "expected closing bracket ] for subscripted identifier",
             );
           }
           consumed++;
@@ -456,7 +463,7 @@ class Parser {
               BadExpressionError,
               tokens[consumed],
               this.index + consumed,
-              "expected comma or closing parenthesis in parenthesized expression",
+              "expected comma or closing parenthesis ) in parenthesized expression",
             );
           }
         }
@@ -487,14 +494,26 @@ class Parser {
     let [leftExpr, leftConsumed] = this.unaryExpression(tokens);
     let index = leftConsumed;
 
-    while (index < tokens.length && isBinaryOp(tokens[index])) {
-      const opToken = tokens[index];
-      index++;
-      const [rightExpr, rightConsumed] = this.unaryExpression(
-        tokens.slice(index),
-      );
-      leftExpr = new Binary(opToken[1] as BinaryOp, leftExpr, rightExpr);
-      index += rightConsumed;
+    while (index < tokens.length) {
+      const token = tokens[index];
+      if (token[0] === Token.BinaryOp || token[0] === Token.ArithmeticOp) {
+        index++;
+        const [rightExpr, rightConsumed] = this.unaryExpression(
+          tokens.slice(index),
+        );
+        if (token[0] === Token.BinaryOp) {
+          leftExpr = new Binary(token[1] as BinaryOp, leftExpr, rightExpr);
+        } else {
+          leftExpr = new Arithmetic(
+            token[1] as ArithmeticOp,
+            leftExpr,
+            rightExpr,
+          );
+        }
+        index += rightConsumed;
+      } else {
+        break;
+      }
     }
 
     return [leftExpr, index];
@@ -505,21 +524,47 @@ class Parser {
    * @param tokens - Remaining tokens to parse.
    * @return The parsed AssignmentStatement AstNode.
    */
-  parseAssignment(
-    tokens: Array<[Token, (number | string)?]>,
-  ): AssignmentStatement {
+  assignment(tokens: Array<[Token, (number | string)?]>): AssignmentStatement {
     const [lhs, lhsConsumed] = this.unaryExpression(tokens);
+
+    // Handle compound assignments
+    if (tokens[lhsConsumed][0] === Token.CompoundArithmeticOp) {
+      const operator = tokens[lhsConsumed][1].toString();
+      const [rhs, rhsConsumed] = this.binaryExpression(
+        tokens.slice(lhsConsumed + 1),
+      );
+
+      if (
+        !this.matchNext(tokens.slice(lhsConsumed + rhsConsumed + 1), [
+          Token.Semicolon,
+        ])
+      ) {
+        throwParserError(
+          MissingSemicolonError,
+          tokens[lhsConsumed + rhsConsumed + 1],
+          this.index,
+          "expected semicolon",
+        );
+      }
+
+      const arithmeticOp = operator.slice(0, -1) as ArithmeticOp;
+      const arithmeticExpression = new Arithmetic(arithmeticOp, lhs, rhs);
+      return new AssignmentStatement(
+        lhs as SubscriptedIdentifier,
+        arithmeticExpression,
+      );
+    }
+
     const [rhs, rhsConsumed] = this.binaryExpression(
       tokens.slice(lhsConsumed + 1),
     );
-
     if (
       !this.matchNext(tokens.slice(lhsConsumed + rhsConsumed + 1), [
         Token.Semicolon,
       ])
     ) {
       throwParserError(
-        BadExpressionError,
+        MissingSemicolonError,
         tokens[0],
         this.index,
         "expected semicolon",
@@ -568,19 +613,19 @@ class Parser {
   ): [Expression, number] {
     if (!this.matchNext(tokens.slice(1), [Token.LParen])) {
       throwParserError(
-        BadExpressionError,
+        MissingBraceError,
         tokens[0],
         this.index,
-        "expected opening parenthesis for type cast",
+        "expected opening parenthesis ( for type cast",
       );
     }
     const [castExpr, consumed] = this.binaryExpression(tokens.slice(2));
     if (!this.matchNext(tokens.slice(2 + consumed), [Token.RParen])) {
       throwParserError(
-        BadExpressionError,
+        MissingBraceError,
         tokens[0],
         this.index,
-        "expected closing parenthesis for type cast",
+        "expected closing parenthesis ) for type cast",
       );
     }
     const castType = this.createClassicalType(tokens[0][0]);
@@ -599,7 +644,7 @@ class Parser {
       return new Include(filename);
     }
     throwParserError(
-      BadIncludeError,
+      BadStringLiteralError,
       tokens[0],
       this.index,
       "expected string literal following `include` keyword",
@@ -743,15 +788,6 @@ class Parser {
     const firstChar = identifier[0];
     return /^[a-z]$/.test(firstChar);
   }
-}
-
-/**
- * Checks if a token represents a binary operator.
- * @param token - The token to check.
- * @return True if the token is a binary operator, false otherwise.
- */
-function isBinaryOp(token: [Token, (number | string)?]): boolean {
-  return token[0] === Token.BinaryOp || token[0] === Token.ArithmeticOp;
 }
 
 /**
