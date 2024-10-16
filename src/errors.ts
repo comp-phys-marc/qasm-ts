@@ -142,6 +142,14 @@ class BadExpressionError extends Error {
   }
 }
 
+/** Class representing a bad loop statement declaration. */
+class BadLoopError extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+    this.name = BadStringLiteralError.name;
+  }
+}
 
 /** Type for returning an error constructor. */
 type ReturnErrorConstructor = new (message?: string) => Error;
@@ -163,5 +171,6 @@ export {
   BadStringLiteralError,
   BadClassicalTypeError,
   BadExpressionError,
+  BadLoopError,
   ReturnErrorConstructor,
 };
