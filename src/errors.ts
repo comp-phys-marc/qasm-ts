@@ -97,6 +97,15 @@ class MissingSemicolonError extends Error {
   }
 }
 
+/** Class representing a missing opening or closing parenthesis, bracket, or curly brakcet. */
+class MissingBraceError extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+    this.name = MissingSemicolonError.name;
+  }
+}
+
 /** Class representing an unsupported OpenQASM version exception. */
 class UnsupportedOpenQASMVersionError extends Error {
   constructor(message?: string) {
@@ -149,6 +158,7 @@ export {
   BadEqualsError,
   BadParameterError,
   MissingSemicolonError,
+  MissingBraceError,
   UnsupportedOpenQASMVersionError,
   BadStringLiteralError,
   BadClassicalTypeError,
