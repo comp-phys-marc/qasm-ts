@@ -727,16 +727,19 @@ class BranchingStatement extends Statement {
  *  | "[" Range "]"
  */
 class ForLoopStatement extends Statement {
-  indexSet: Identifier | IndexSet | Range;
+  indexSet: IndexSet | Range | Expression;
+  loopVarType: ClassicalType;
   parameter: Identifier;
   body: ProgramBlock;
   constructor(
-    indexSet: Identifier | IndexSet | Range,
+    indexSet: IndexSet | Range | Expression,
+    loopVarType: ClassicalType,
     parameter: Identifier,
     body: ProgramBlock,
   ) {
     super();
     this.indexSet = indexSet;
+    this.loopVarType = loopVarType;
     this.parameter = parameter;
     this.body = body;
   }
