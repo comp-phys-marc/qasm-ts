@@ -84,8 +84,9 @@ import {
   ContinueStatement,
   IOModifier,
   IODeclaration,
-  DefaultCase,
   SwitchStatement,
+  CaseStatement,
+  DefaultStatement,
   ClassicalType,
   ArithmeticOp,
   Arithmetic,
@@ -271,6 +272,10 @@ class Parser {
       case Token.While: {
         const [whileNode, whileConsumed] = this.whileLoopStatement(tokens);
         return [[whileNode], whileConsumed];
+      }
+      case Token.Switch: {
+        const [switchNode, switchConsumed] = this.switchStatement(tokens);
+        return [[switchNode], switchConsumed];
       }
       case Token.Id:
         if (
@@ -910,6 +915,159 @@ class Parser {
   }
 
   /**
+   * Parses a switch statement.
+   * @param tokens - Tokens to parse.
+   * @return A SwitchStatement node and the number of tokens consumed.
+   */
+  switchStatement(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [SwitchStatement, number] {
+    let consumed = 1;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.LParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected opening parenthesis after switch keywork",
+      );
+    }
+    consumed++;
+
+    const [controlExpr, controlExprConsumed] = this.binaryExpression(
+      tokens.slice(consumed),
+    );
+    consumed += controlExprConsumed;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected closing parenthesis after switch control expression",
+      );
+    }
+    consumed++;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.LCParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected opening curly brace for switch body",
+      );
+    }
+    consumed++;
+
+    const cases: Array<CaseStatement> = [];
+    let defaultCase: DefaultStatement | null = null;
+
+    while (!this.matchNext(tokens.slice(consumed), [Token.RCParen])) {
+      if (this.matchNext(tokens.slice(consumed), [Token.Case])) {
+        const [caseStmt, caseConsumed] = this.parseCaseStatement(
+          tokens.slice(consumed),
+        );
+        cases.push(caseStmt);
+        consumed += caseConsumed;
+      } else if (this.matchNext(tokens.slice(consumed), [Token.Default])) {
+        if (defaultCase !== null) {
+          throwParserError(
+            BadExpressionError,
+            tokens[consumed],
+            this.index + consumed,
+            "multiple default statements not allowed in a swtich statement",
+          );
+        }
+        const [defaultStmt, defaultConsumed] = this.parseDefaultStatement(
+          tokens.slice(consumed),
+        );
+        defaultCase = defaultStmt;
+        consumed += defaultConsumed;
+      } else {
+        throwParserError(
+          BadExpressionError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected case or default statement in switch body",
+        );
+      }
+    }
+
+    if (cases.length === 0) {
+      throwParserError(
+        BadExpressionError,
+        tokens[consumed],
+        this.index + consumed,
+        "swtich statement must contain at least one case statement",
+      );
+    }
+    consumed++;
+
+    return [new SwitchStatement(controlExpr, cases, defaultCase), consumed];
+  }
+
+  /**
+   * Parses a case statement.
+   * @param tokens - Tokens to parse.
+   * @return A CaseStatement node and the number of tokens consumed.
+   */
+  parseCaseStatement(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [CaseStatement, number] {
+    let consumed = 1;
+    const labels: Array<Expression> = [];
+
+    while (!this.matchNext(tokens.slice(consumed), [Token.LCParen])) {
+      const [label, labelConsumed] = this.binaryExpression(
+        tokens.slice(consumed),
+      );
+      labels.push(label);
+      consumed += labelConsumed;
+
+      if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
+        consumed++;
+      } else if (!this.matchNext(tokens.slice(consumed), [Token.LCParen])) {
+        throwParserError(
+          BadExpressionError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected comma or opening brace in case statement",
+        );
+      }
+    }
+
+    const [body, bodyConsumed] = this.programBlock(tokens.slice(consumed));
+    consumed += bodyConsumed;
+
+    return [new CaseStatement(labels, body), consumed];
+  }
+
+  /**
+   * Parses a default statement.
+   * @param tokens - Tokens to parse.
+   * @return A DefaultStatement node and the number of tokens consumed.
+   */
+  parseDefaultStatement(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [DefaultStatement, number] {
+    let consumed = 1;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.LCParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expecting opening brace for default statement",
+      );
+    }
+
+    const [body, bodyConsumed] = this.programBlock(tokens.slice(consumed));
+    consumed += bodyConsumed;
+
+    return [new DefaultStatement(body), consumed];
+  }
+
+  /**
    * Parses a program block.
    * @param tokens - Tokens to parse.
    * @return A ProgramBlock node and the number of tokens consumed.
@@ -993,7 +1151,7 @@ class Parser {
       consumed += 2;
       return [new Version(version), consumed];
     } else if (this.matchNext(slicedTokens, [Token.Real, Token.Semicolon])) {
-      const versionSplits = tokens[0][1].toString().split(".");
+      const versionSplits = tokens[consumed][1].toString().split(".");
       version = new OpenQASMVersion(
         Number(versionSplits[0]),
         Number(versionSplits[1]),
