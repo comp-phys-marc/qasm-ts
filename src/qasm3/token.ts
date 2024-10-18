@@ -163,6 +163,8 @@ enum Token {
   Sqrt,
   // 81; tangent
   Tan,
+  // 82; angle type
+  Angle,
 }
 
 const lookupMap: object = {
@@ -252,6 +254,7 @@ const lookupMap: object = {
   sin: Token.Sin,
   sqrt: Token.Sqrt,
   tan: Token.Tan,
+  angle: Token.Angle,
 };
 
 /**
