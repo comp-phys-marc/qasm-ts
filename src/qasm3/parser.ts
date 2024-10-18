@@ -203,8 +203,6 @@ class Parser {
   ): [Array<AstNode>, number] {
     const token = tokens[0];
     switch (token[0]) {
-      case Token.EndOfFile:
-        return [[], 0];
       case Token.DefcalGrammar: {
         const [defcalGrammarNode, consumed] =
           this.defcalGrammarDeclaration(tokens);
@@ -637,26 +635,86 @@ class Parser {
     tokens: Array<[Token, (number | string)?]>,
   ): [Expression | Range, number] {
     let consumed = 1;
-    if (this.matchNext(tokens.slice(consumed), [Token.Colon])) {
-      // Full range
-      return [new Range(null, null), 1];
+    let start: Expression | null = null;
+    let step: Expression | null = null;
+    let stop: Expression | null = null;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Colon])) {
+      // Parse start
+      const [startExpr, startConsumed] = this.binaryExpression(
+        tokens.slice(consumed),
+      );
+      start = startExpr;
+      consumed += startConsumed;
     }
 
-    const [start, startConsumed] = this.binaryExpression(tokens);
-    consumed += startConsumed;
+    // Check for colon after start
+    if (!this.matchNext(tokens.slice(consumed), [Token.Colon])) {
+      throwParserError(
+        BadExpressionError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected colon in range expression",
+      );
+    }
+    consumed++;
 
-    if (this.matchNext(tokens.slice(consumed), [Token.Colon])) {
-      consumed++;
-      if (this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
-        // Range with only start
-        return [new Range(start, null), consumed];
+    if (!this.matchNext(tokens.slice(consumed), [Token.Colon, Token.RSParen])) {
+      const [stepExpr, stepConsumed] = this.binaryExpression(
+        tokens.slice(consumed),
+      );
+      step = stepExpr;
+      consumed += stepConsumed;
+
+      // Check for colon after step
+      if (!this.matchNext(tokens.slice(consumed), [Token.Colon])) {
+        throwParserError(
+          BadExpressionError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected colon after step in range expression",
+        );
       }
-      const [end, endConsumed] = this.binaryExpression(tokens.slice(consumed));
-      consumed += endConsumed;
-      return [new Range(start, end), consumed];
+      consumed++;
     }
 
-    return [start, consumed];
+    // Parse stop
+    if (this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+      throwParserError(
+        BadExpressionError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected stop value in range expression",
+      );
+    }
+    const [stopExpr, stopConsumed] = this.binaryExpression(
+      tokens.slice(consumed),
+    );
+    stop = stopExpr;
+    consumed += stopConsumed;
+
+    // Check for closing square bracket
+    if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected closing bracket ] for range expression",
+      );
+    }
+    consumed++;
+
+    // Validate that both start and stop are provided
+    if (start === null || stop === null) {
+      throwParserError(
+        BadExpressionError,
+        tokens[0],
+        this.index,
+        "both start and stop must be provided in range expression",
+      );
+    }
+
+    return [new Range(start, stop, step), consumed];
   }
 
   /**
