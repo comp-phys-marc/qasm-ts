@@ -121,6 +121,15 @@ class BitType extends ClassicalType {
   }
 }
 
+/** Class representing an angle type. */
+class AngleType extends ClassicalType {
+  size: number | Expression | null;
+  constructor(size?: number | Expression) {
+    super();
+    this.size = size ? size : null;
+  }
+}
+
 /** Class representing a duration type. */
 class DurationType extends ClassicalType {}
 
@@ -838,6 +847,7 @@ export {
   IntType,
   UIntType,
   BitType,
+  AngleType,
   DurationType,
   Range,
   Identifier,
