@@ -19,6 +19,7 @@ import {
   MissingSemicolonError,
   MissingBraceError,
   BadLoopError,
+  BadQuantumInstructionError,
 } from "../errors";
 import {
   AstNode,
@@ -240,8 +241,17 @@ class Parser {
         );
         return [[classicalNode], consumed];
       }
+      case Token.Qubit:
+      case Token.QReg: {
+        const [qregNode, qregConsumed] = this.quantumDeclaration(tokens);
+        return [[qregNode], qregConsumed];
+      }
       case Token.Break:
         return [[new BreakStatement()], 1];
+      case Token.Reset: {
+        const [resetNode, resetConsumed] = this.resetStatement(tokens);
+        return [[resetNode], resetConsumed];
+      }
       case Token.Continue:
         return [[new ContinueStatement()], 1];
       case Token.Ceiling:
@@ -265,7 +275,10 @@ class Parser {
       }
       case Token.Opaque: {
         let consumed = 1;
-        while(consumed < this.tokens.length && !this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+        while (
+          consumed < this.tokens.length &&
+          !this.matchNext(tokens.slice(consumed), [Token.Semicolon])
+        ) {
           consumed++;
         }
         return [[], consumed];
@@ -495,14 +508,6 @@ class Parser {
             tokens.slice(1),
           );
           consumed += subscriptConsumed + 1;
-          if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
-            throwParserError(
-              MissingBraceError,
-              tokens[consumed],
-              this.index + consumed,
-              "expected closing bracket ] for subscripted identifier",
-            );
-          }
           consumed++;
           return [
             new SubscriptedIdentifier(identifier.name, subscript),
@@ -652,6 +657,119 @@ class Parser {
   }
 
   /**
+   * Parses a quantum declaration.
+   * @param tokens - Tokens to parse.
+   * @return A QuantumDeclaration node and the number of tokens consumed.
+   */
+  quantumDeclaration(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [QuantumDeclaration, number] {
+    let consumed = 1;
+    const isQubit = tokens[0][0] === Token.Qubit;
+
+    let size: Expression | null = null;
+    // Qubit
+    if (isQubit) {
+      if (this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
+        consumed++;
+        const [sizeExpr, sizeConsumed] = this.binaryExpression(
+          tokens.slice(consumed),
+        );
+        consumed += sizeConsumed;
+        size = sizeExpr;
+
+        if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+          throwParserError(
+            MissingBraceError,
+            tokens[consumed],
+            this.index + consumed,
+            "expected closing bracket ] for qubit declaration size",
+          );
+        }
+        consumed++;
+      }
+    }
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+      throwParserError(
+        BadQregError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected identifier for quantum declaration",
+      );
+    }
+
+    const [identifier, idConsumed] = this.unaryExpression(
+      tokens.slice(consumed, consumed + 1),
+    );
+    consumed += idConsumed;
+
+    // Qreg
+    if (!isQubit && this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
+      consumed++;
+      const [sizeExpr, sizeConsumed] = this.binaryExpression(
+        tokens.slice(consumed),
+      );
+      size = sizeExpr;
+      consumed += sizeConsumed;
+
+      if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+        throwParserError(
+          MissingBraceError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected closing bracket ] for quantum register size",
+        );
+      }
+      consumed++;
+    }
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      throwParserError(
+        MissingSemicolonError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected semicolon after quantum register declaration",
+      );
+    }
+    consumed++;
+
+    return [new QuantumDeclaration(identifier as Identifier, size), consumed];
+  }
+
+  /**
+   * Parses a quantum reset.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the QuantumReset and the number of tokens consumed.
+   */
+  resetStatement(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [QuantumReset, number] {
+    let consumed = 1;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+      throwParserError(
+        BadQuantumInstructionError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected identifier after reset keyword",
+      );
+    }
+    const [idNode, idConsumed] = this.unaryExpression(tokens.slice(consumed));
+    consumed += idConsumed;
+
+    let id: Identifier | SubscriptedIdentifier = null;
+    if (idNode instanceof SubscriptedIdentifier) {
+      id = idNode as SubscriptedIdentifier;
+    } else {
+      id = idNode as Identifier;
+    }
+    consumed++;
+
+    return [new QuantumReset(id), consumed];
+  }
+
+  /**
    * Parses a subscript expression as a Range.
    * @param tokens - Remaining tokens to parse.
    * @return A tuple containing the parsed Expression or Range and the number of tokens consumed.
@@ -671,6 +789,10 @@ class Parser {
       );
       start = startExpr;
       consumed += startConsumed;
+    }
+
+    if (this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+      return [start, consumed];
     }
 
     // Check for colon after start
