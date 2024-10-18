@@ -194,7 +194,10 @@ enum MathFunctionTypes {
 class MathFunction extends Expression {
   mathType: MathFunctionTypes;
   operands: Expression;
-  constructor(mathType: MathFunctionTypes, operands: Expression | Array<Expression>) {
+  constructor(
+    mathType: MathFunctionTypes,
+    operands: Expression | Array<Expression>,
+  ) {
     super();
     this.mathType = mathType;
     this.operands = operands;
@@ -447,7 +450,7 @@ class ClassicalDeclaration extends Statement {
     classicalType: ClassicalType,
     identifier: Identifier,
     initializer?: any,
-    isConst?: boolean, 
+    isConst?: boolean,
   ) {
     super();
     this.classicalType = classicalType;
@@ -785,23 +788,40 @@ class IODeclaration extends ClassicalDeclaration {
   }
 }
 
-/** Class representing the `default` special label in switch statements. */
-class DefaultCase extends Expression {}
-
 /** Class representing a switch statement. */
 class SwitchStatement extends Statement {
-  target: Expression;
-  cases: Array<[Array<Expression>, ProgramBlock]>;
-  defaultBlock: ProgramBlock | null;
+  controlExpression: Expression;
+  cases: Array<CaseStatement>;
+  defaultBlock: DefaultStatement | null;
   constructor(
-    target: Expression,
-    cases: Array<[Array<Expression>, ProgramBlock]>,
-    defaultBlock?: ProgramBlock,
+    controlExpression: Expression,
+    cases: Array<CaseStatement>,
+    defaultBlock?: DefaultStatement,
   ) {
     super();
-    this.target = target;
+    this.controlExpression = controlExpression;
     this.cases = cases;
     this.defaultBlock = defaultBlock ? defaultBlock : null;
+  }
+}
+
+/** Class representing a single case in a switch statement. */
+class CaseStatement extends Statement {
+  labels: Array<Expression>;
+  body: ProgramBlock;
+  constructor(labels: Array<Expression>, body: ProgramBlock) {
+    super();
+    this.labels = labels;
+    this.body = body;
+  }
+}
+
+/** Class representing the default case in a swtich statement. */
+class DefaultStatement extends Statement {
+  body: ProgramBlock;
+  constructor(body: ProgramBlock) {
+    super();
+    this.body = body;
   }
 }
 
@@ -871,7 +891,8 @@ export {
   ContinueStatement,
   IOModifier,
   IODeclaration,
-  DefaultCase,
   SwitchStatement,
+  CaseStatement,
+  DefaultStatement,
   ClassicalType,
 };
