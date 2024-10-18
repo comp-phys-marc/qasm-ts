@@ -235,6 +235,10 @@ class Parser {
         );
         return [[classicalNode], consumed];
       }
+      case Token.Break:
+        return [[new BreakStatement], 1];
+      case Token.Continue: 
+        return [[new ContinueStatement], 1];
       case Token.Ceiling:
       case Token.Exp:
       case Token.Floor:
@@ -877,7 +881,7 @@ class Parser {
       while (!this.matchNext(tokens.slice(consumed), [Token.RCParen])) {
         const [node, nodeConsumed] = this.parseNode(tokens.slice(consumed));
         if (node) {
-          statements.push(node);
+          statements.push(node[0]);
         }
         consumed += nodeConsumed;
         if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
