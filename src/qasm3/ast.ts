@@ -489,11 +489,11 @@ class AssignmentStatement extends Statement {
  */
 class QuantumDeclaration extends AstNode {
   identifier: Identifier;
-  designator: any;
-  constructor(identifier: Identifier, designator: any) {
+  size: Expression | null;
+  constructor(identifier: Identifier, size?: Expression | null) {
     super();
     this.identifier = identifier;
-    this.designator = designator;
+    this.size = size ? size : null;
   }
 }
 
