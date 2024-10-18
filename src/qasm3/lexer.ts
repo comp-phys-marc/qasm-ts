@@ -115,7 +115,10 @@ class Lexer {
         !trimmedLine.startsWith("if") &&
         !trimmedLine.startsWith("else") &&
         !trimmedLine.startsWith("for") &&
-        !trimmedLine.startsWith("while")
+        !trimmedLine.startsWith("while") &&
+        !trimmedLine.startsWith("switch") &&
+        !trimmedLine.startsWith("case") &&
+        !trimmedLine.startsWith("default")
       ) {
         return [false, i + 1, lines[i]];
       }
@@ -310,16 +313,26 @@ class Lexer {
           return [Token.CompoundArithmeticOp, "+="];
         }
         return [Token.ArithmeticOp, "+"];
-      case "-":
+      case "-": {
         if (this.peekEq(">")) {
           this.readChar();
           return [Token.Arrow];
         } else if (this.peekEq("=")) {
           this.readChar();
           return [Token.CompoundArithmeticOp, "-="];
+        } else if (isNumeric(this.input[this.cursor])) {
+          const num = char + this.readNumeric();
+          if (num.indexOf(".") != -1) {
+            return [Token.Real, parseFloat(num)];
+          } else if (num.indexOf("_") != -1) {
+            return [Token.Integer, num];
+          } else {
+            return [Token.Real, parseFloat(num)];
+          }
         } else {
           return [Token.ArithmeticOp, "-"];
         }
+      }
       case "&":
         if (this.peekEq("&")) {
           this.readChar();
