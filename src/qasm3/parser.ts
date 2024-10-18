@@ -33,6 +33,7 @@ import {
   IntType,
   UIntType,
   BitType,
+  AngleType,
   DurationType,
   Range,
   Identifier,
@@ -231,6 +232,7 @@ class Parser {
       case Token.UInt:
       case Token.Bool:
       case Token.Bit:
+      case Token.Angle:
       case Token.Duration: {
         const [classicalNode, consumed] = this.classicalDeclaration(
           tokens,
@@ -260,6 +262,13 @@ class Parser {
         );
         consumed += mathConsumed;
         return [[math], consumed];
+      }
+      case Token.Opaque: {
+        let consumed = 1;
+        while(consumed < this.tokens.length && !this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+          consumed++;
+        }
+        return [[], consumed];
       }
       case Token.If: {
         const [ifNode, ifConsumed] = this.ifStatement(tokens);
@@ -1285,6 +1294,8 @@ class Parser {
         return new BitType(width);
       case Token.Duration:
         return new DurationType();
+      case Token.Angle:
+        return new AngleType(width);
       default:
         throwParserError(
           BadClassicalTypeError,
