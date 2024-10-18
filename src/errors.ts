@@ -151,6 +151,15 @@ class BadLoopError extends Error {
   }
 }
 
+/** Class representing a bad quantum instruction. */
+class BadQuantumInstructionError extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+    this.name = BadStringLiteralError.name;
+  }
+}
+
 /** Type for returning an error constructor. */
 type ReturnErrorConstructor = new (message?: string) => Error;
 
@@ -172,5 +181,6 @@ export {
   BadClassicalTypeError,
   BadExpressionError,
   BadLoopError,
+  BadQuantumInstructionError,
   ReturnErrorConstructor,
 };
