@@ -182,6 +182,8 @@ class Parser {
             i++;
           }
           break;
+        } else if (this.matchNext(this.tokens.slice(i), [Token.RCParen])) {
+          break;
         }
         i++;
       }
@@ -236,9 +238,9 @@ class Parser {
         return [[classicalNode], consumed];
       }
       case Token.Break:
-        return [[new BreakStatement], 1];
-      case Token.Continue: 
-        return [[new ContinueStatement], 1];
+        return [[new BreakStatement()], 1];
+      case Token.Continue:
+        return [[new ContinueStatement()], 1];
       case Token.Ceiling:
       case Token.Exp:
       case Token.Floor:
@@ -265,6 +267,10 @@ class Parser {
       case Token.For: {
         const [forNode, forConsumed] = this.forLoopStatement(tokens);
         return [[forNode], forConsumed];
+      }
+      case Token.While: {
+        const [whileNode, whileConsumed] = this.whileLoopStatement(tokens);
+        return [[whileNode], whileConsumed];
       }
       case Token.Id:
         if (
@@ -601,6 +607,7 @@ class Parser {
           "expected semicolon",
         );
       }
+      consumed++;
 
       const arithmeticOp = operator.slice(0, -1) as ArithmeticOp;
       const arithmeticExpression = new Arithmetic(arithmeticOp, lhs, rhs);
@@ -640,7 +647,7 @@ class Parser {
   ): [Expression | Range, number] {
     let consumed = 1;
     let start: Expression | null = null;
-    let step: Expression | null = null;
+    let step: Expression = new IntegerLiteral(1);
     let stop: Expression | null = null;
 
     if (!this.matchNext(tokens.slice(consumed), [Token.Colon])) {
@@ -663,39 +670,35 @@ class Parser {
     }
     consumed++;
 
-    if (!this.matchNext(tokens.slice(consumed), [Token.Colon, Token.RSParen])) {
-      const [stepExpr, stepConsumed] = this.binaryExpression(
+    if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+      const [expr, exprConsumed] = this.binaryExpression(
         tokens.slice(consumed),
       );
-      step = stepExpr;
-      consumed += stepConsumed;
+      consumed += exprConsumed;
 
-      // Check for colon after step
-      if (!this.matchNext(tokens.slice(consumed), [Token.Colon])) {
-        throwParserError(
-          BadExpressionError,
-          tokens[consumed],
-          this.index + consumed,
-          "expected colon after step in range expression",
+      // Check if its a step or stop
+      if (this.matchNext(tokens.slice(consumed), [Token.Colon])) {
+        step = expr;
+        consumed++;
+
+        // Parse stop
+        if (this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+          throwParserError(
+            BadExpressionError,
+            tokens[consumed],
+            this.index + consumed,
+            "expected stop value in range expression",
+          );
+        }
+        const [stopExpr, stopConsumed] = this.binaryExpression(
+          tokens.slice(consumed),
         );
+        stop = stopExpr;
+        consumed += stopConsumed;
+      } else {
+        stop = expr;
       }
-      consumed++;
     }
-
-    // Parse stop
-    if (this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
-      throwParserError(
-        BadExpressionError,
-        tokens[consumed],
-        this.index + consumed,
-        "expected stop value in range expression",
-      );
-    }
-    const [stopExpr, stopConsumed] = this.binaryExpression(
-      tokens.slice(consumed),
-    );
-    stop = stopExpr;
-    consumed += stopConsumed;
 
     // Check for closing square bracket
     if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
@@ -866,6 +869,47 @@ class Parser {
   }
 
   /**
+   * Parses a while loop.
+   * @param tokens - Tokens to parse.
+   * @return A ForLoopStatement node and the number of tokens consumed.
+   */
+  whileLoopStatement(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [WhileLoopStatement, number] {
+    let consumed = 1;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.LParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected opening parenthesis after while keyword",
+      );
+    }
+    consumed++;
+
+    const [condition, conditionConsumed] = this.binaryExpression(
+      tokens.slice(consumed),
+    );
+    consumed += conditionConsumed;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected closing parenthesis after while loop condition",
+      );
+    }
+    consumed++;
+
+    const [body, bodyConsumed] = this.programBlock(tokens.slice(consumed));
+    consumed += bodyConsumed;
+
+    return [new WhileLoopStatement(condition, body), consumed];
+  }
+
+  /**
    * Parses a program block.
    * @param tokens - Tokens to parse.
    * @return A ProgramBlock node and the number of tokens consumed.
@@ -889,6 +933,9 @@ class Parser {
         }
       }
       consumed++;
+      // if (this.matchNext(tokens.slice(consumed), [Token.RCParen])) {
+      //   consumed++;
+      // }
     } else {
       const [node, nodeConsumed] = this.parseNode(tokens.slice(consumed));
       if (node) {
