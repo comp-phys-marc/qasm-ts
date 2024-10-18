@@ -393,6 +393,15 @@ class Lexer {
           const char = this.readChar(1);
           const hexLit = this.readIdentifier();
           return [Token.HexLiteral, `0${char}${hexLit}`];
+        } else {
+          const num = char + this.readNumeric();
+          if (num.indexOf(".") != -1) {
+            return [Token.Real, parseFloat(num)];
+          } else if (num.indexOf("_") != -1) {
+            return [Token.Integer, num];
+          } else {
+            return [Token.NNInteger, parseInt(num)];
+          }
         }
         return this.readKeywordOrIdentifier(char);
       case "O":
