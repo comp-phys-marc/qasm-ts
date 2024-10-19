@@ -266,6 +266,8 @@ class Lexer {
         return [Token.Euler];
       case "τ":
         return [Token.Tau];
+      case "@":
+        return [Token.At];
       case "!":
         if (this.peekEq("=")) {
           this.readChar();
@@ -394,6 +396,47 @@ class Lexer {
         return [Token.RSParen];
       case "}":
         return [Token.RCParen];
+      case "c":
+        if (
+          this.input[this.cursor] == "t" &&
+          this.input[this.cursor + 1] == "r" &&
+          this.input[this.cursor + 2] == "l"
+        ) {
+          this.readChar(3);
+          return this.lexGateModifier("ctrl");
+        }
+        return this.readKeywordOrIdentifier(char);
+      case "n":
+        if (
+          this.input[this.cursor] == "e" &&
+          this.input[this.cursor + 1] == "g" &&
+          this.input[this.cursor + 2] == "c" &&
+          this.input[this.cursor + 3] == "t" &&
+          this.input[this.cursor + 4] == "r" &&
+          this.input[this.cursor + 5] == "l"
+        ) {
+          this.readChar(6);
+          return this.lexGateModifier("negctrl");
+        }
+        return this.readKeywordOrIdentifier(char);
+      case "i":
+        if (
+          this.input[this.cursor] == "n" &&
+          this.input[this.cursor + 1] == "v"
+        ) {
+          this.readChar(2);
+          return this.lexGateModifier("inv");
+        }
+        return this.readKeywordOrIdentifier(char);
+      case "p":
+        if (
+          this.input[this.cursor] == "o" &&
+          this.input[this.cursor + 1] == "w"
+        ) {
+          this.readChar(2);
+          return this.lexGateModifier("pow");
+        }
+        return this.readKeywordOrIdentifier(char);
       case "0":
         if (this.peekEq("b") || this.peekEq("B")) {
           const char = this.readChar(1);
@@ -520,6 +563,37 @@ class Lexer {
     const lines = this.input.split(/\n|\r(?!\n)|\u2028|\u2029|\r\n/);
     const lineNumber = this.getLineNumber(cursor);
     return lines[lineNumber - 1];
+  };
+
+  /**
+   * Retruns an identifier or gate modifier.
+   */
+  lexGateModifier = (keyword: string): [Token, (number | string)?] => {
+    let offset = 1;
+    let currChar = "";
+    while (
+      this.cursor + offset < this.input.length &&
+      this.input[this.cursor + offset] !== ";"
+    ) {
+      currChar = this.input[this.cursor + offset];
+      if (currChar === "@") {
+        break;
+      }
+      offset++;
+    }
+    if (currChar === "@") {
+      switch (keyword) {
+        case "ctrl":
+          return [Token.Ctrl];
+        case "negctrl":
+          return [Token.NegCtrl];
+        case "inv":
+          return [Token.Inv];
+        case "pow":
+          return [Token.PowM];
+      }
+    }
+    return this.readKeywordOrIdentifier(keyword);
   };
 }
 export default Lexer;

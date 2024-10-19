@@ -165,6 +165,16 @@ enum Token {
   Tan,
   // 82; angle type
   Angle,
+  // 83; ctrl gate modifier
+  Ctrl,
+  // 84; negctrl gate modifier
+  NegCtrl,
+  // 85; inv gate modifier
+  Inv,
+  // 86; pow gate modifier
+  PowM,
+  // 87; @ symbol
+  At,
 }
 
 const lookupMap: object = {
@@ -255,6 +265,7 @@ const lookupMap: object = {
   sqrt: Token.Sqrt,
   tan: Token.Tan,
   angle: Token.Angle,
+  "@": Token.At,
 };
 
 /**
