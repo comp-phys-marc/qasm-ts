@@ -116,8 +116,17 @@ class Parser {
   /** The tokens to parse. */
   tokens: Array<[Token, (number | string)?]>;
 
-  /** The allowed gates. */
-  gates: Array<string>;
+  /** The built in gates. */
+  gates: Set<string>;
+
+  /** Custom defined gates. */
+  customGates: Set<string>;
+
+  /** Standard library gates. */
+  standardGates: Set<string>;
+
+  /** Custom defined subroutines. */
+  subroutines: Set<string>;
 
   /** Index of the current token. */
   index: number;
@@ -140,30 +149,55 @@ class Parser {
     machineIntSize?: number,
   ) {
     this.tokens = tokens;
-    this.gates = [
-      "x",
-      "y",
-      "z",
-      "u1",
-      "u2",
-      "u3",
-      "s",
-      "sdg",
-      "h",
-      "tdg",
-      "cx",
-      "cy",
-      "cz",
-      "t",
-      "ccx",
-      "reset",
-      "cu1",
-      "ccy",
-      "ccz",
-    ];
+    this.gates = new Set(["U", "gphase"]);
+    this.standardGates = new Set();
+    this.customGates = new Set();
+    this.subroutines = new Set();
     this.index = 0;
     this.machineFloatWidth = defaultFloatWidth ? defaultFloatWidth : 64;
     this.machineIntSize = machineIntSize ? machineIntSize : 32;
+  }
+
+  /**
+   * Loads the standard library gates.
+   */
+  stdGates() {
+    const gates = [
+      "p",
+      "x",
+      "y",
+      "z",
+      "h",
+      "s",
+      "sdg",
+      "t",
+      "tdg",
+      "sx",
+      "rx",
+      "ry",
+      "rz",
+      "cx",
+      "cy",
+      "cz",
+      "cp",
+      "crx",
+      "cry",
+      "crz",
+      "ch",
+      "swap",
+      "ccx",
+      "cswap",
+      "cu",
+      // OpenQASM 2 backwards compatibility gates
+      "CX",
+      "phase",
+      "cphase",
+      "id",
+      "u1",
+      "u2",
+      "u3",
+    ];
+    gates.forEach(this.standardGates.add, this.standardGates);
   }
 
   /**
@@ -213,6 +247,9 @@ class Parser {
       }
       case Token.Include: {
         const [includeNode, consumed] = this.include(tokens);
+        if (includeNode.filename === "stdgates.inc") {
+          this.stdGates();
+        }
         return [[includeNode], consumed];
       }
       case Token.OpenQASM: {
@@ -265,6 +302,11 @@ class Parser {
       case Token.Measure: {
         const [measureNode, measureConsumed] = this.measureStatement(tokens);
         return [[measureNode], measureConsumed];
+      }
+      case Token.Gate: {
+        const [gateNode, gateConsumed] = this.quantumGateDefinition(tokens);
+        this.customGates.add(gateNode.name.name);
+        return [[gateNode], gateConsumed];
       }
       case Token.Ceiling:
       case Token.Exp:
@@ -891,6 +933,111 @@ class Parser {
         consumed,
       ];
     }
+  }
+
+  /**
+   * Parses a quantum gate definition.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the QuantumGateDefinition and the number of tokens consumed.
+   */
+  quantumGateDefinition(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [QuantumGateDefinition, number] {
+    let consumed = 1;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+      throwParserError(
+        BadGateError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected gate name",
+      );
+    }
+    const [name, nameConsumed] = this.unaryExpression(tokens.slice(consumed));
+    consumed += nameConsumed;
+
+    // Parse optional parameters
+    const [params, paramsConsumed] = this.parseParameters(
+      tokens.slice(consumed),
+    );
+    consumed += paramsConsumed;
+
+    // Parse qubits
+    const qubits: Array<Identifier> = [];
+    while (!this.matchNext(tokens.slice(consumed), [Token.LCParen])) {
+      if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+        throwParserError(
+          BadGateError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected qubit argument",
+        );
+      }
+      const [qubit, qubitConsumed] = this.unaryExpression(
+        tokens.slice(consumed),
+      );
+      qubits.push(qubit as Identifier | SubscriptedIdentifier);
+      consumed += qubitConsumed;
+
+      if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
+        consumed++;
+      } else if (!this.matchNext(tokens.slice(consumed), [Token.LCParen])) {
+        throwParserError(
+          BadGateError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected comma or opening brace for gate body",
+        );
+      }
+    }
+
+    const [body, bodyConsumed] = this.programBlock(tokens.slice(consumed));
+    consumed += bodyConsumed;
+
+    return [
+      new QuantumGateDefinition(
+        name as Identifier,
+        params,
+        qubits,
+        body as QuantumBlock,
+      ),
+      consumed,
+    ];
+  }
+
+  /**
+   * Parses a set of parameters.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the Parameters and the number of tokens consumed.
+   */
+  parseParameters(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [Parameters, number] {
+    let consumed = 0;
+    const args: Array<Expression> = [];
+
+    if (this.matchNext(tokens, [Token.LParen])) {
+      consumed++;
+      while (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
+        const [param, paramConsumed] = this.binaryExpression(
+          tokens.slice(consumed),
+        );
+        args.push(param);
+        consumed += paramConsumed;
+
+        if (this.matchNext(tokens.slice(consumed), [Token.RParen])) {
+          throwParserError(
+            BadParameterError,
+            tokens[consumed],
+            this.index + consumed,
+            "expected comma or closing parenthesis in parameter list",
+          );
+        }
+      }
+      consumed++;
+    }
+
+    return [new Parameters(args), consumed];
   }
 
   /**
