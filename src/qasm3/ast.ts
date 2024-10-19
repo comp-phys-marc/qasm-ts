@@ -426,11 +426,11 @@ class QuantumMeasurement extends AstNode {
  *  | indexIdentifier EQUALS quantumMeasurement
  */
 class QuantumMeasurementAssignment extends Statement {
-  identifier: Identifier;
+  identifier: Identifier | SubscriptedIdentifier;
   quantumMeasurement: QuantumMeasurement;
-  constructor(identifier: Identifier, quantumMeasurement: QuantumMeasurement) {
+  constructor(identifier: Identifier | SubscriptedIdentifier, quantumMeasurement: QuantumMeasurement) {
     super();
-    this.identifier = Identifier;
+    this.identifier = identifier;
     this.quantumMeasurement = quantumMeasurement;
   }
 }
