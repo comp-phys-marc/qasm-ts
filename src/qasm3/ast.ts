@@ -535,19 +535,19 @@ class QuantumGateModifier extends AstNode {
  */
 class QuantumGateCall extends QuantumInstrcution {
   quantumGateName: Identifier;
-  indexIdentifierList: Array<Identifier>;
-  parameters: Array<Expression> | null;
+  qubits: Array<Identifier>;
+  parameters: Parameters | null;
   modifiers: Array<QuantumGateModifier> | null;
   constructor(
     quantumGateCall: Identifier,
-    indexIdentifierList: Array<Identifier>,
-    parameters?: Array<Expression>,
+    qubits: Array<Identifier>,
+    parameters?: Parameters,
     modifiers?: Array<QuantumGateModifier>,
   ) {
     super();
     this.quantumGateName = quantumGateCall;
-    this.indexIdentifierList = indexIdentifierList;
-    this.parameters = parameters ? parameters : [];
+    this.qubits = qubits;
+    this.parameters = parameters ? parameters : null;
     this.modifiers = modifiers ? modifiers : [];
   }
 }
