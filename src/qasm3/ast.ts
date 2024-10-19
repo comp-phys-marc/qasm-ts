@@ -642,12 +642,12 @@ class SubroutineBlock extends ProgramBlock {
  */
 class QuantumGateDefinition extends Statement {
   name: Identifier;
-  params: Array<Identifier>;
+  params: Parameters;
   qubits: Array<Identifier>;
   body: QuantumBlock;
   constructor(
     name: Identifier,
-    params: Array<Identifier>,
+    params: Parameters,
     qubits: Array<Identifier>,
     body: QuantumBlock,
   ) {
@@ -669,7 +669,7 @@ class QuantumGateDefinition extends Statement {
 class SubroutineDefinition extends Statement {
   identifier: Identifier;
   subroutineBlock: SubroutineBlock;
-  args: Parameters | Array<any> | null;
+  args: Parameters | Array<Expression> | null;
   constructor(
     identifier: Identifier,
     subroutineBlock: SubroutineBlock,
