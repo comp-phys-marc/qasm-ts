@@ -247,7 +247,7 @@ class Parser {
       }
       case Token.Include: {
         const [includeNode, consumed] = this.include(tokens);
-        if (includeNode.filename === "stdgates.inc") {
+        if (includeNode.filename === "\"stdgates.inc\"") {
           this.stdGates();
         }
         return [[includeNode], consumed];
@@ -308,6 +308,13 @@ class Parser {
         this.customGates.add(gateNode.name.name);
         return [[gateNode], gateConsumed];
       }
+      case Token.Ctrl:
+      case Token.NegCtrl:
+      case Token.Inv:
+      case Token.PowM: {
+        const [gateCallNode, gateCallConsumed] = this.quantumGateCall(tokens);
+        return [[gateCallNode], gateCallConsumed];
+      }
       case Token.Ceiling:
       case Token.Exp:
       case Token.Floor:
@@ -354,7 +361,10 @@ class Parser {
         return [[switchNode], switchConsumed];
       }
       case Token.Id:
-        if (this.isMeasurement(tokens)) {
+        if (this.isQuantumGateCall(tokens)) {
+          const [gateCallNode, gateCallConsumed] = this.quantumGateCall(tokens);
+          return [[gateCallNode], gateCallConsumed];
+        } else if (this.isMeasurement(tokens)) {
           const [measureNode, measureConsumed] = this.measureStatement(tokens);
           return [[measureNode], measureConsumed];
         } else if (
@@ -1006,6 +1016,160 @@ class Parser {
   }
 
   /**
+   * Parses a quantum gate call.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the QuantumGateCall and the number of tokens consumed.
+   */
+  quantumGateCall(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [QuantumGateCall, number] {
+    let consumed = 0;
+    const modifiers: Array<QuantumGateModifier> = [];
+
+    // Parse modifier(s)
+    while (
+      this.matchNext(tokens.slice(consumed), [Token.Ctrl]) ||
+      this.matchNext(tokens.slice(consumed), [Token.NegCtrl]) ||
+      this.matchNext(tokens.slice(consumed), [Token.Inv]) ||
+      this.matchNext(tokens.slice(consumed), [Token.PowM])
+    ) {
+      const [modifier, modifierConsumed] = this.parseQuantumGateModifier(
+        tokens.slice(consumed),
+      );
+      modifiers.push(modifier);
+      consumed += modifierConsumed;
+    }
+
+    // Parse gate name
+    if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+      throwParserError(
+        BadGateError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected gate name",
+      );
+    }
+    const [gateName, gateNameConsumed] = this.unaryExpression(
+      tokens.slice(consumed),
+    );
+    consumed += gateNameConsumed;
+
+    let callParams: Parameters = null;
+    // Parse optional parameters
+    if (this.matchNext(tokens.slice(consumed), [Token.LParen])) {
+      const [params, paramsConsumed] = this.parseParameters(
+        tokens.slice(consumed),
+      );
+      callParams = params;
+      consumed += paramsConsumed;
+    }
+
+    // Parse qubit arguments
+    const qubits: Array<Identifier> = [];
+    while (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+        throwParserError(
+          BadGateError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected qubit argument",
+        );
+      }
+      const [qubit, qubitConsumed] = this.unaryExpression(
+        tokens.slice(consumed),
+      );
+      qubits.push(qubit as Identifier);
+      consumed += qubitConsumed;
+
+      if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
+        consumed++;
+      } else if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+        throwParserError(
+          BadGateError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected comma or semicolon after qubit argument",
+        );
+      }
+    }
+    consumed++;
+
+    return [
+      new QuantumGateCall(
+        gateName as Identifier,
+        qubits,
+        callParams,
+        modifiers,
+      ),
+      consumed,
+    ];
+  }
+
+  /**
+   * Parses a gate modifier.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the gate modifier and the number of tokens consumed.
+   */
+  parseQuantumGateModifier(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [QuantumGateModifier, number] {
+    let consumed = 1;
+    const modifierToken = tokens[0][0];
+    let modifier: QuantumGateModifierName;
+    let argument: Expression | null = null;
+
+    switch (modifierToken) {
+      case Token.Ctrl:
+        modifier = QuantumGateModifierName.CTRL;
+        break;
+      case Token.NegCtrl:
+        modifier = QuantumGateModifierName.NRGCTRL;
+        break;
+      case Token.Inv:
+        modifier = QuantumGateModifierName.INV;
+        break;
+      case Token.PowM:
+        modifier = QuantumGateModifierName.POW;
+        break;
+      default:
+        throwParserError(
+          BadGateError,
+          tokens[0],
+          this.index,
+          "invalid gate modifier",
+        );
+    }
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.At])) {
+      throwParserError(
+        BadGateError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected `@` symbol after gate modifier",
+      );
+    }
+    consumed++;
+
+    if (this.matchNext(tokens.slice(consumed), [Token.LParen])) {
+      consumed++;
+      const [arg, argConsumed] = this.binaryExpression(tokens.slice(consumed));
+      argument = arg;
+      consumed += argConsumed;
+
+      if (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
+        throwParserError(
+          BadGateError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected closing parenthesis after gate modifier argument",
+        );
+      }
+      consumed++;
+    }
+    return [new QuantumGateModifier(modifier, argument), consumed];
+  }
+
+  /**
    * Parses a set of parameters.
    * @param tokens - Remaining tokens to parse.
    * @return A tuple containing the Parameters and the number of tokens consumed.
@@ -1025,7 +1189,9 @@ class Parser {
         args.push(param);
         consumed += paramConsumed;
 
-        if (this.matchNext(tokens.slice(consumed), [Token.RParen])) {
+        if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
+          consumed++;
+        } else if (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
           throwParserError(
             BadParameterError,
             tokens[consumed],
@@ -1531,9 +1697,6 @@ class Parser {
         }
       }
       consumed++;
-      // if (this.matchNext(tokens.slice(consumed), [Token.RCParen])) {
-      //   consumed++;
-      // }
     } else {
       const [node, nodeConsumed] = this.parseNode(tokens.slice(consumed));
       if (node) {
@@ -1558,7 +1721,7 @@ class Parser {
     if (
       this.matchNext(tokens.slice(consumed), [Token.String, Token.Semicolon])
     ) {
-      filename = tokens[0][1].toString();
+      filename = tokens[consumed][1].toString();
       return [new Include(filename), consumed + 2];
     }
     throwParserError(
@@ -1807,7 +1970,7 @@ class Parser {
   }
 
   /**
-   *
+   * Checks whether the statement is part of an assignment.
    */
   private isAssignment(tokens: Array<[Token, (number | string)?]>): boolean {
     let i = 0;
@@ -1815,6 +1978,20 @@ class Parser {
       i++;
     }
     return tokens[i][0] === Token.EqualsAssmt;
+  }
+
+  /**
+   * Checks whether an identifier is a quantum gate call.
+   */
+  private isQuantumGateCall(
+    tokens: Array<[Token, (number | string)?]>,
+  ): boolean {
+    const gateName = tokens[0][1] as string;
+    return (
+      this.gates.has(gateName) ||
+      this.standardGates.has(gateName) ||
+      this.customGates.has(gateName)
+    );
   }
 
   /** TODO : update this
