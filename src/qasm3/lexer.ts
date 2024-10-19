@@ -107,6 +107,9 @@ class Lexer {
       const trimmedLine = lines[i].trim();
       if (
         !trimmedLine.startsWith("//") &&
+        !trimmedLine.startsWith("/*") &&
+        !trimmedLine.startsWith("*") &&
+        !trimmedLine.startsWith("*/") &&
         trimmedLine.length > 0 &&
         !trimmedLine.startsWith("gate") &&
         trimmedLine !== "{" &&
@@ -167,6 +170,20 @@ class Lexer {
     while (!isNewline(char)) {
       char = this.readChar();
     }
+  };
+
+  /**
+   * Advances the cursor past a multiline comment.
+   */
+  skipMultiLineComment = () => {
+    let char = "";
+    let nextChar = "";
+    const multiLineCommentTerminator = "*/";
+    while (`${char}${nextChar}` !== multiLineCommentTerminator) {
+      char = this.readChar();
+      nextChar = this.peek();
+    }
+    this.readChar();
   };
 
   /**
@@ -268,6 +285,8 @@ class Lexer {
         return [Token.Tau];
       case "@":
         return [Token.At];
+      case "θ":
+        return this.readKeywordOrIdentifier(char);
       case "!":
         if (this.peekEq("=")) {
           this.readChar();
@@ -295,6 +314,9 @@ class Lexer {
       case "/":
         if (this.peekEq("/")) {
           this.skipComment();
+          return;
+        } else if (this.peekEq("*")) {
+          this.skipMultiLineComment();
           return;
         } else if (this.peekEq("=")) {
           this.readChar();
