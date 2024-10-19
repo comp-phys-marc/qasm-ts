@@ -3,10 +3,8 @@
 import { Token, notParam } from "./token";
 import { OpenQASMVersion } from "../version";
 import {
-  BadArgumentError,
   BadCregError,
   BadQregError,
-  BadConditionalError,
   BadBarrierError,
   BadMeasurementError,
   BadGateError,
@@ -319,7 +317,8 @@ class Parser {
           return [[measureNode], measureConsumed];
         } else if (
           this.matchNext(tokens.slice(1), [Token.EqualsAssmt]) ||
-          this.matchNext(tokens.slice(1), [Token.CompoundArithmeticOp])
+          this.matchNext(tokens.slice(1), [Token.CompoundArithmeticOp]) ||
+          this.isAssignment(tokens)
         ) {
           const [assignmentNode, consumed] = this.assignment(tokens);
           return [[assignmentNode], consumed];
@@ -524,8 +523,7 @@ class Parser {
           const [subscript, subscriptConsumed] = this.parseSubscript(
             tokens.slice(1),
           );
-          consumed += subscriptConsumed + 1;
-          consumed++;
+          consumed += subscriptConsumed;
           return [
             new SubscriptedIdentifier(identifier.name, subscript),
             consumed,
@@ -656,6 +654,17 @@ class Parser {
       ];
     }
 
+    if (this.matchNext(tokens.slice(consumed), [Token.EqualsAssmt])) {
+      consumed++;
+    } else {
+      throwParserError(
+        BadExpressionError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected `=` in assignment statement",
+      );
+    }
+
     const [rhs, rhsConsumed] = this.binaryExpression(tokens.slice(consumed));
     consumed += rhsConsumed;
     if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
@@ -767,18 +776,18 @@ class Parser {
     // Legacy syntax: measure qubit|qubit[] -> bit|bit[];
     if (this.matchNext(tokens.slice(consumed), [Token.Measure])) {
       consumed++;
-
-      const qubitIdentifiers: Identifier[] = [];
+      const qubitIdentifiers: (Identifier | SubscriptedIdentifier)[] = [];
       while (!this.matchNext(tokens.slice(consumed), [Token.Arrow])) {
         const [identifier, idConsumed] = this.unaryExpression(
           tokens.slice(consumed),
         );
-        qubitIdentifiers.push(identifier as Identifier);
+        qubitIdentifiers.push(identifier as Identifier | SubscriptedIdentifier);
         consumed += idConsumed;
 
         if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
           consumed++;
         } else if (!this.matchNext(tokens.slice(consumed), [Token.Arrow])) {
+          console.log(tokens.slice(consumed));
           throwParserError(
             BadMeasurementError,
             tokens[consumed],
@@ -789,7 +798,7 @@ class Parser {
       }
       const measurement = new QuantumMeasurement(qubitIdentifiers);
 
-      // If there's an array, build a QuantumMeasurementAssignment
+      // If there's an arros, build a QuantumMeasurementAssignment
       if (this.matchNext(tokens.slice(consumed), [Token.Arrow])) {
         consumed++;
         const [identifier, idConsumed] = this.unaryExpression(
@@ -939,7 +948,7 @@ class Parser {
     }
 
     if (this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
-      return [start, consumed];
+      return [start, consumed + 1];
     }
 
     // Check for colon after start
@@ -1648,6 +1657,17 @@ class Parser {
     return (
       tokens[i][0] === Token.EqualsAssmt && tokens[i + 1][0] === Token.Measure
     );
+  }
+
+  /**
+   *
+   */
+  private isAssignment(tokens: Array<[Token, (number | string)?]>): boolean {
+    let i = 0;
+    while (tokens[i][0] !== Token.EqualsAssmt) {
+      i++;
+    }
+    return tokens[i][0] === Token.EqualsAssmt;
   }
 
   /** TODO : update this
