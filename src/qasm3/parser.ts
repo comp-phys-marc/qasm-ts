@@ -232,7 +232,6 @@ class Parser {
       case Token.Int:
       case Token.UInt:
       case Token.Bool:
-      case Token.Bit:
       case Token.Angle:
       case Token.Duration: {
         const [classicalNode, consumed] = this.classicalDeclaration(
@@ -254,6 +253,21 @@ class Parser {
       }
       case Token.Continue:
         return [[new ContinueStatement()], 1];
+      case Token.Bit:
+        if (this.isMeasurement(tokens.slice(1))) {
+          const [measureNode, measureConsumed] = this.measureStatement(tokens);
+          return [[measureNode], measureConsumed];
+        } else {
+          const [classicalNode, consumed] = this.classicalDeclaration(
+            tokens,
+            false,
+          );
+          return [[classicalNode], consumed];
+        }
+      case Token.Measure: {
+        const [measureNode, measureConsumed] = this.measureStatement(tokens);
+        return [[measureNode], measureConsumed];
+      }
       case Token.Ceiling:
       case Token.Exp:
       case Token.Floor:
@@ -300,7 +314,10 @@ class Parser {
         return [[switchNode], switchConsumed];
       }
       case Token.Id:
-        if (
+        if (this.isMeasurement(tokens)) {
+          const [measureNode, measureConsumed] = this.measureStatement(tokens);
+          return [[measureNode], measureConsumed];
+        } else if (
           this.matchNext(tokens.slice(1), [Token.EqualsAssmt]) ||
           this.matchNext(tokens.slice(1), [Token.CompoundArithmeticOp])
         ) {
@@ -738,6 +755,136 @@ class Parser {
   }
 
   /**
+   * Parses a measure statement.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the QuantumMeasurementAssignment or QuantumMeasurement and the number of tokens consumed.
+   */
+  measureStatement(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [QuantumMeasurementAssignment | QuantumMeasurement, number] {
+    let consumed = 0;
+
+    // Legacy syntax: measure qubit|qubit[] -> bit|bit[];
+    if (this.matchNext(tokens.slice(consumed), [Token.Measure])) {
+      consumed++;
+
+      const qubitIdentifiers: Identifier[] = [];
+      while (!this.matchNext(tokens.slice(consumed), [Token.Arrow])) {
+        const [identifier, idConsumed] = this.unaryExpression(
+          tokens.slice(consumed),
+        );
+        qubitIdentifiers.push(identifier as Identifier);
+        consumed += idConsumed;
+
+        if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
+          consumed++;
+        } else if (!this.matchNext(tokens.slice(consumed), [Token.Arrow])) {
+          throwParserError(
+            BadMeasurementError,
+            tokens[consumed],
+            this.index + consumed,
+            "expected comma or arrow in measurement statement",
+          );
+        }
+      }
+      const measurement = new QuantumMeasurement(qubitIdentifiers);
+
+      // If there's an array, build a QuantumMeasurementAssignment
+      if (this.matchNext(tokens.slice(consumed), [Token.Arrow])) {
+        consumed++;
+        const [identifier, idConsumed] = this.unaryExpression(
+          tokens.slice(consumed),
+        );
+        const classicalBit = identifier as Identifier | SubscriptedIdentifier;
+        consumed += idConsumed;
+
+        if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+          throwParserError(
+            MissingSemicolonError,
+            tokens[consumed],
+            this.index + consumed,
+          );
+        }
+        consumed++;
+        return [
+          new QuantumMeasurementAssignment(
+            classicalBit as Identifier,
+            measurement,
+          ),
+          consumed,
+        ];
+      } else {
+        if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+          throwParserError(
+            MissingSemicolonError,
+            tokens[consumed],
+            this.index + consumed,
+          );
+        }
+        consumed++;
+
+        return [measurement, consumed];
+      }
+    }
+    // New syntax: bit|bit[] = measure qubit|qreg;
+    else {
+      const [leftIdentifier, leftIdConsumed] = this.unaryExpression(
+        tokens.slice(consumed),
+      );
+      const classicalBit = leftIdentifier as Identifier | SubscriptedIdentifier;
+      consumed += leftIdConsumed;
+
+      if (!this.matchNext(tokens.slice(consumed), [Token.EqualsAssmt])) {
+        throwParserError(
+          BadMeasurementError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected `=` in measurement assignment",
+        );
+      }
+      consumed++;
+
+      if (!this.matchNext(tokens.slice(consumed), [Token.Measure])) {
+        throwParserError(
+          BadMeasurementError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected `measure` keyword in measurement assignment",
+        );
+      }
+      consumed++;
+
+      const [rightIdentifier, rightIdConsumed] = this.unaryExpression(
+        tokens.slice(consumed),
+      );
+      const qubitIdentifier = rightIdentifier as
+        | Identifier
+        | SubscriptedIdentifier;
+      consumed += rightIdConsumed;
+
+      if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+        throwParserError(
+          MissingSemicolonError,
+          tokens[consumed],
+          this.index + consumed,
+        );
+      }
+      consumed++;
+
+      const measurement = new QuantumMeasurement([
+        qubitIdentifier as Identifier,
+      ]);
+      return [
+        new QuantumMeasurementAssignment(
+          classicalBit as Identifier,
+          measurement,
+        ),
+        consumed,
+      ];
+    }
+  }
+
+  /**
    * Parses a quantum reset.
    * @param tokens - Remaining tokens to parse.
    * @return A tuple containing the QuantumReset and the number of tokens consumed.
@@ -868,7 +1015,8 @@ class Parser {
   parseTypeCast(
     tokens: Array<[Token, (number | string)?]>,
   ): [Expression, number] {
-    if (!this.matchNext(tokens.slice(1), [Token.LParen])) {
+    let consumed = 1;
+    if (!this.matchNext(tokens.slice(consumed), [Token.LParen])) {
       throwParserError(
         MissingBraceError,
         tokens[0],
@@ -876,8 +1024,12 @@ class Parser {
         "expected opening parenthesis ( for type cast",
       );
     }
-    const [castExpr, consumed] = this.binaryExpression(tokens.slice(2));
-    if (!this.matchNext(tokens.slice(2 + consumed), [Token.RParen])) {
+    consumed++;
+    const [castExpr, castConsumed] = this.binaryExpression(
+      tokens.slice(consumed),
+    );
+    consumed += castConsumed;
+    if (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
       throwParserError(
         MissingBraceError,
         tokens[0],
@@ -885,8 +1037,9 @@ class Parser {
         "expected closing parenthesis ) for type cast",
       );
     }
+    consumed++;
     const castType = this.createClassicalType(tokens[0][0]);
-    return [new Cast(castType, castExpr), consumed + 3];
+    return [new Cast(castType, castExpr), consumed];
   }
 
   /**
@@ -1479,6 +1632,22 @@ class Parser {
           "unsupported math or trig function",
         );
     }
+  }
+
+  /**
+   * Checks whether a Bit token precedes a measurement statement.
+   */
+  private isMeasurement(tokens: Array<[Token, (number | string)?]>): boolean {
+    let i = 0;
+    while (
+      tokens[i][0] !== Token.EqualsAssmt &&
+      tokens[i][0] !== Token.Semicolon
+    ) {
+      i++;
+    }
+    return (
+      tokens[i][0] === Token.EqualsAssmt && tokens[i + 1][0] === Token.Measure
+    );
   }
 
   /** TODO : update this
