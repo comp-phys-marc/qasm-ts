@@ -494,10 +494,26 @@ class AssignmentStatement extends Statement {
 class QuantumDeclaration extends AstNode {
   identifier: Identifier;
   size: Expression | null;
-  constructor(identifier: Identifier, size?: Expression | null) {
+  constructor(
+    identifier: Identifier,
+    size?: Expression | null,
+  ) {
     super();
     this.identifier = identifier;
     this.size = size ? size : null;
+  }
+}
+
+/**
+ * Class representing a hardware qubit.
+ *
+ * $[NUM]
+ */
+class HardwareQubit extends AstNode {
+  number: number;
+  constructor(number: number) {
+    super();
+    this.number = number;
   }
 }
 
@@ -539,12 +555,12 @@ class QuantumGateModifier extends AstNode {
  */
 class QuantumGateCall extends QuantumInstrcution {
   quantumGateName: Identifier;
-  qubits: Array<Identifier>;
+  qubits: Array<Identifier | HardwareQubit>;
   parameters: Parameters | null;
   modifiers: Array<QuantumGateModifier> | null;
   constructor(
     quantumGateCall: Identifier,
-    qubits: Array<Identifier>,
+    qubits: Array<Identifier | HardwareQubit>,
     parameters?: Parameters,
     modifiers?: Array<QuantumGateModifier>,
   ) {
@@ -899,6 +915,7 @@ export {
   ClassicalDeclaration,
   AssignmentStatement,
   QuantumDeclaration,
+  HardwareQubit,
   AliasStatement,
   QuantumGateModifierName,
   QuantumGateModifier,

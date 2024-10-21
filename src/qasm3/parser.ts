@@ -91,6 +91,7 @@ import {
   ArithmeticOp,
   Arithmetic,
   ImaginaryLiteral,
+  HardwareQubit,
 } from "./ast";
 
 /**
@@ -211,6 +212,7 @@ class Parser {
       const [nodes, consumed] = this.parseNode(this.tokens.slice(this.index));
       ast = ast.concat(nodes ? nodes : []);
       this.index += consumed;
+      console.log(this.tokens[this.index]);
     }
     return ast;
     // let i = 0;
@@ -531,7 +533,9 @@ class Parser {
     //     "expected semicolon",
     //   );
     // }
-    // consumed++;
+    if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      consumed++;
+    }
 
     return [
       new ClassicalDeclaration(
@@ -1254,9 +1258,21 @@ class Parser {
     }
 
     // Parse qubit arguments
-    const qubits: Array<Identifier> = [];
+    const qubits: Array<Identifier | HardwareQubit> = [];
     while (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
-      if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+      if (
+        this.matchNext(tokens.slice(consumed), [Token.Dollar, Token.NNInteger])
+      ) {
+        const [hardwareQubit, hardwareQubitConsumed] = this.parseHardwareQubit(
+          tokens.slice(consumed),
+        );
+        qubits.push(hardwareQubit);
+        consumed += hardwareQubitConsumed;
+        if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
+          consumed++;
+        }
+        continue;
+      } else if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
         throwParserError(
           BadGateError,
           tokens[consumed],
@@ -1292,6 +1308,35 @@ class Parser {
       ),
       consumed,
     ];
+  }
+
+  /**
+   * Parses a hardware qubit.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the HardwareQubit and the number of tokens consumed.
+   */
+  parseHardwareQubit(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [HardwareQubit, number] {
+    let consumed = 0;
+    if (!this.matchNext(tokens.slice(consumed), [Token.Dollar])) {
+      throwParserError(
+        BadGateError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected dollar sign for hardware qubit",
+      );
+    }
+    consumed++;
+    if (!this.matchNext(tokens.slice(consumed), [Token.NNInteger])) {
+      throwParserError(
+        BadGateError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected non-negative integer for hardware qubit",
+      );
+    }
+    return [new HardwareQubit(Number(tokens[consumed][1])), consumed + 1];
   }
 
   /**
