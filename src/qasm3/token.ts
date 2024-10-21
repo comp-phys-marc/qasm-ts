@@ -175,6 +175,8 @@ enum Token {
   PowM,
   // 87; @ symbol
   At,
+  // 88; complex number keyword
+  Complex,
 }
 
 const lookupMap: object = {
@@ -267,6 +269,7 @@ const lookupMap: object = {
   tan: Token.Tan,
   angle: Token.Angle,
   "@": Token.At,
+  complex: Token.Complex,
 };
 
 /**

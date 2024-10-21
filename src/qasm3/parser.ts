@@ -3,7 +3,6 @@
 import { Token, notParam } from "./token";
 import { OpenQASMVersion } from "../version";
 import {
-  BadCregError,
   BadQregError,
   BadBarrierError,
   BadMeasurementError,
@@ -29,6 +28,7 @@ import {
   Include,
   Version,
   FloatType,
+  ComplexType,
   BoolType,
   IntType,
   UIntType,
@@ -90,6 +90,7 @@ import {
   ClassicalType,
   ArithmeticOp,
   Arithmetic,
+  ImaginaryLiteral,
 } from "./ast";
 
 /**
@@ -207,10 +208,7 @@ class Parser {
   parse(): Array<AstNode> {
     let ast: Array<AstNode> = [];
     while (this.index < this.tokens.length - 1) {
-      console.log("----");
-      console.log(this.tokens[this.index]);
       const [nodes, consumed] = this.parseNode(this.tokens.slice(this.index));
-      console.log(this.tokens[this.index]);
       ast = ast.concat(nodes ? nodes : []);
       this.index += consumed;
     }
@@ -248,7 +246,6 @@ class Parser {
     allowVariables = true,
   ): [Array<AstNode>, number] {
     const token = tokens[0];
-    console.log(tokens[this.index]);
     switch (token[0]) {
       case Token.DefcalGrammar: {
         const [defcalGrammarNode, consumed] =
@@ -278,6 +275,7 @@ class Parser {
       case Token.UInt:
       case Token.Bool:
       case Token.Angle:
+      case Token.Complex:
       case Token.Duration: {
         const [classicalNode, consumed] = this.classicalDeclaration(
           tokens,
@@ -300,8 +298,6 @@ class Parser {
         return [[new ContinueStatement()], 1];
       case Token.Bit:
         if (this.isMeasurement(tokens.slice(1))) {
-          console.log("here2");
-          console.log(tokens);
           const [measureNode, measureConsumed] = this.measureStatement(tokens);
           return [[measureNode], measureConsumed];
         } else {
@@ -560,15 +556,35 @@ class Parser {
     let consumed = 1;
 
     switch (token[0]) {
-      case Token.NNInteger:
+      case Token.NNInteger: {
+        if (this.isImaginary(tokens[consumed])) {
+          return [
+            new ImaginaryLiteral(`${token[1].toString()}im`),
+            consumed + 1,
+          ];
+        }
         return [new IntegerLiteral(Number(token[1])), consumed];
-      case Token.Integer:
+      }
+      case Token.Integer: {
+        if (this.isImaginary(tokens[consumed])) {
+          return [
+            new ImaginaryLiteral(`${token[1].toString()}im`),
+            consumed + 1,
+          ];
+        }
         return [new IntegerLiteral(token[1].toString()), consumed];
+      }
       case Token.BinaryLiteral:
       case Token.OctalLiteral:
       case Token.HexLiteral:
         return [new NumericLiteral(token[1].toString()), consumed];
       case Token.Real:
+        if (this.isImaginary(tokens[consumed])) {
+          return [
+            new ImaginaryLiteral(`${token[1].toString()}im`),
+            consumed + 1,
+          ];
+        }
         return [new FloatLiteral(Number(token[1])), consumed];
       case Token.BoolLiteral:
         return [new BooleanLiteral(token[1] === "true"), consumed];
@@ -855,7 +871,6 @@ class Parser {
     tokens: Array<[Token, (number | string)?]>,
   ): [QuantumMeasurementAssignment | QuantumMeasurement, number] {
     let consumed = 0;
-    console.log(tokens);
 
     // Legacy syntax: measure qubit|qubit[] -> bit|bit[];
     if (this.matchNext(tokens.slice(consumed), [Token.Measure])) {
@@ -1364,7 +1379,6 @@ class Parser {
           args.push(qubitParam);
           consumed += qubitConsumed;
         } else if (this.matchNext(tokens.slice(consumed), [Token.Bit])) {
-          console.log("here");
           const [bitParam, bitConsumed] = this.parseNode(
             tokens.slice(consumed),
           );
@@ -1996,9 +2010,26 @@ class Parser {
   parseClassicalType(
     tokens: Array<[Token, (number | string)?]>,
   ): [ClassicalType, number] {
-    const typeToken = tokens[0][0];
+    let typeToken = tokens[0][0];
     let consumed = 1;
     let width: Expression | undefined;
+    let isComplex = false;
+
+    if (typeToken === Token.Complex) {
+      if (
+        !this.matchNext(tokens.slice(consumed), [Token.LSParen, Token.Float])
+      ) {
+        throwParserError(
+          BadClassicalTypeError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected float type for complex number",
+        );
+      }
+      isComplex = true;
+      consumed += 2;
+      typeToken = tokens[2][0];
+    }
 
     // Check if there's a width or size specification
     if (this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
@@ -2016,9 +2047,19 @@ class Parser {
           "expected closing bracket ] for type width",
         );
       }
+      if (isComplex) {
+        consumed++;
+      }
       consumed++;
     }
-    return [this.createClassicalType(typeToken, width), consumed];
+
+    const classicalType = this.createClassicalType(typeToken, width);
+
+    if (isComplex) {
+      return [new ComplexType(classicalType as FloatType), consumed];
+    } else {
+      return [classicalType, consumed];
+    }
   }
 
   /**
@@ -2211,6 +2252,14 @@ class Parser {
   ): boolean {
     const subroutineName = tokens[0][1] as string;
     return this.subroutines.has(subroutineName);
+  }
+
+  /** Checks whether a number is imaginary. */
+  private isImaginary(token: [Token, (number | string)?]): boolean {
+    if (token.length !== 2) {
+      return false;
+    }
+    return token[1].toString() === "im";
   }
 
   /** TODO : update this

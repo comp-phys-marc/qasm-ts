@@ -91,6 +91,20 @@ class FloatType extends ClassicalType {
   }
 }
 
+/**
+ * Class representing a complex number type.
+ *
+ * scalarType:
+ *   COMPLEX (LBRACKET scalarType RBRACKET)?
+ */
+class ComplexType extends ClassicalType {
+  float: FloatType;
+  constructor(float: FloatType) {
+    super();
+    this.float = float;
+  }
+}
+
 /** Class representing a classical boolean type. */
 class BoolType extends ClassicalType {}
 
@@ -256,6 +270,15 @@ class NumericLiteral extends Expression {
 class FloatLiteral extends Expression {
   value: number | string;
   constructor(value: number | string) {
+    super();
+    this.value = value;
+  }
+}
+
+/** Class representing an imaginary number literal. */
+class ImaginaryLiteral extends Expression {
+  value: string;
+  constructor(value: string) {
     super();
     this.value = value;
   }
@@ -838,6 +861,7 @@ export {
   Include,
   Version,
   FloatType,
+  ComplexType,
   BoolType,
   IntType,
   UIntType,
@@ -857,6 +881,7 @@ export {
   IntegerLiteral,
   NumericLiteral,
   FloatLiteral,
+  ImaginaryLiteral,
   BooleanLiteral,
   BitstringLiteral,
   DurationUnit,
