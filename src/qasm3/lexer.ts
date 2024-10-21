@@ -423,6 +423,8 @@ class Lexer {
         return [Token.RSParen];
       case "}":
         return [Token.RCParen];
+      case "$":
+        return [Token.Dollar];
       case "c":
         if (
           this.input[this.cursor] == "t" &&
