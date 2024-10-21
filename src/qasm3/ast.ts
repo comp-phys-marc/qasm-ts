@@ -416,6 +416,58 @@ class IndexSet extends Expression {
   }
 }
 
+/** Class representing a statically sized array. */
+class ArrayDeclaration extends Statement {
+  baseType: ClassicalType;
+  dimensions: Array<Expression>;
+  identifier: Identifier;
+  initializer: ArrayInitializer | null;
+  constructor(
+    baseType: ClassicalType,
+    dimensions: Array<Expression>,
+    identifier: Identifier,
+    initializer?: ArrayInitializer | null,
+  ) {
+    super();
+    this.baseType = baseType;
+    this.dimensions = dimensions;
+    this.identifier = identifier;
+    this.initializer =
+      initializer !== undefined && initializer !== null ? initializer : null;
+  }
+}
+
+/** Class representing an initial value for an ArrayDeclaration. */
+class ArrayInitializer extends Expression {
+  values: Array<Expression | ArrayInitializer>;
+  constructor(values: Array<Expression | ArrayInitializer>) {
+    super();
+    this.values = values;
+  }
+}
+
+/** Class representing an array access */
+class ArrayAccess extends Expression {
+  array: Identifier;
+  indices: Array<Expression>;
+  constructor(array: Identifier, indices: Array<Expression>) {
+    super();
+    this.array = array;
+    this.indices = indices;
+  }
+}
+
+/** Class representing an array assignment. */
+class ArrayAssignment extends Statement {
+  target: ArrayAccess;
+  value: Expression;
+  constructor(target: ArrayAccess, value: Expression) {
+    super();
+    this.target = target;
+    this.value = value;
+  }
+}
+
 /**
  * Class representing a quantum measurement.
  *
@@ -494,10 +546,7 @@ class AssignmentStatement extends Statement {
 class QuantumDeclaration extends AstNode {
   identifier: Identifier;
   size: Expression | null;
-  constructor(
-    identifier: Identifier,
-    size?: Expression | null,
-  ) {
+  constructor(identifier: Identifier, size?: Expression | null) {
     super();
     this.identifier = identifier;
     this.size = size ? size : null;
@@ -910,6 +959,10 @@ export {
   Binary,
   Cast,
   IndexSet,
+  ArrayDeclaration,
+  ArrayInitializer,
+  ArrayAccess,
+  ArrayAssignment,
   QuantumMeasurement,
   QuantumMeasurementAssignment,
   ClassicalDeclaration,

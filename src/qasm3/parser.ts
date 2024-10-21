@@ -58,6 +58,10 @@ import {
   Binary,
   Cast,
   IndexSet,
+  ArrayDeclaration,
+  ArrayInitializer,
+  ArrayAccess,
+  ArrayAssignment,
   QuantumMeasurement,
   QuantumMeasurementAssignment,
   ClassicalDeclaration,
@@ -130,6 +134,9 @@ class Parser {
   /** Custom defined subroutines. */
   subroutines: Set<string>;
 
+  /** User defined arrays. */
+  customArrays: Set<string>;
+
   /** Index of the current token. */
   index: number;
 
@@ -155,6 +162,7 @@ class Parser {
     this.standardGates = new Set();
     this.customGates = new Set();
     this.subroutines = new Set();
+    this.customArrays = new Set();
     this.index = 0;
     this.machineFloatWidth = defaultFloatWidth ? defaultFloatWidth : 64;
     this.machineIntSize = machineIntSize ? machineIntSize : 32;
@@ -212,7 +220,6 @@ class Parser {
       const [nodes, consumed] = this.parseNode(this.tokens.slice(this.index));
       ast = ast.concat(nodes ? nodes : []);
       this.index += consumed;
-      console.log(this.tokens[this.index]);
     }
     return ast;
     // let i = 0;
@@ -379,6 +386,10 @@ class Parser {
       case Token.Switch: {
         const [switchNode, switchConsumed] = this.switchStatement(tokens);
         return [[switchNode], switchConsumed];
+      }
+      case Token.Array: {
+        const [arrayNode, arrayConsumed] = this.arrayDeclaration(tokens);
+        return [[arrayNode], arrayConsumed];
       }
       case Token.Id:
         if (this.isQuantumGateCall(tokens)) {
@@ -1766,6 +1777,144 @@ class Parser {
     consumed += bodyConsumed;
 
     return [new WhileLoopStatement(condition, body), consumed];
+  }
+
+  /**
+   * Parses an array statement.
+   * @param tokens - Tokens to parse.
+   * @return A ArrayDeclaration node and the number of tokens consumed.
+   */
+  arrayDeclaration(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [ArrayDeclaration, number] {
+    console.log(tokens);
+    let consumed = 1;
+    if (!this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected [ after array keyword",
+      );
+    }
+    consumed++;
+
+    const [baseType, baseTypeConsumed] = this.parseClassicalType(
+      tokens.slice(consumed),
+    );
+    consumed += baseTypeConsumed;
+
+    const dimensions: Array<Expression> = [];
+    while (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
+      consumed++;
+      const [dimension, dimensionConsumed] = this.binaryExpression(
+        tokens.slice(consumed),
+      );
+      dimensions.push(dimension);
+      consumed += dimensionConsumed;
+    }
+    if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected ] after array type declaration",
+      );
+    }
+    consumed++;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+      throwParserError(
+        BadExpressionError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected identifier for array declaration",
+      );
+    }
+    const [identifier, identifierConsumed] = this.unaryExpression(
+      tokens.slice(consumed),
+    );
+    consumed += identifierConsumed;
+
+    let initializer: ArrayInitializer | null = null;
+    if (this.matchNext(tokens.slice(consumed), [Token.EqualsAssmt])) {
+      consumed++;
+      const [parsedInitializer, initializerConsumed] =
+        this.parseArrayInitializer(tokens.slice(consumed));
+      initializer = parsedInitializer;
+      consumed += initializerConsumed;
+    }
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      throwParserError(
+        BadExpressionError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected semicolon after array declaration",
+      );
+    }
+    consumed++;
+
+    return [
+      new ArrayDeclaration(
+        baseType,
+        dimensions,
+        identifier as Identifier,
+        initializer,
+      ),
+      consumed,
+    ];
+  }
+
+  /**
+   * Parses an array initializer.
+   * @param tokens - Tokens to parse.
+   * @return A ArrayInitializer node and the number of tokens consumed.
+   */
+  parseArrayInitializer(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [ArrayInitializer, number] {
+    let consumed = 0;
+    if (!this.matchNext(tokens, [Token.LCParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected { for array initializer",
+      );
+    }
+    consumed++;
+
+    const values: Array<Expression | ArrayInitializer> = [];
+    while (!this.matchNext(tokens.slice(consumed), [Token.RCParen])) {
+      if (this.matchNext(tokens.slice(consumed), [Token.LCParen])) {
+        const [subInitializer, subConsumed] = this.parseArrayInitializer(
+          tokens.slice(consumed),
+        );
+        values.push(subInitializer);
+        consumed += subConsumed;
+      } else {
+        const [expr, exprConsumed] = this.binaryExpression(
+          tokens.slice(consumed),
+        );
+        values.push(expr);
+        consumed += exprConsumed;
+      }
+
+      if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
+        consumed++;
+      } else if (!this.matchNext(tokens.slice(consumed), [Token.RCParen])) {
+        throwParserError(
+          BadExpressionError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected comma or } in array initializer",
+        );
+      }
+    }
+    consumed++;
+
+    return [new ArrayInitializer(values), consumed];
   }
 
   /**
