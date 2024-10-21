@@ -115,6 +115,7 @@ class Lexer {
         trimmedLine !== "{" &&
         trimmedLine !== "}" &&
         !trimmedLine.includes(";") &&
+        !trimmedLine.startsWith("def") &&
         !trimmedLine.startsWith("if") &&
         !trimmedLine.startsWith("else") &&
         !trimmedLine.startsWith("for") &&
@@ -372,6 +373,10 @@ class Lexer {
           return [Token.BinaryOp, "|"];
         }
       case "^":
+        if (this.peekEq("=")) {
+          this.readChar()
+          return [Token.CompoundArithmeticOp, "^="];
+        }
         return [Token.BinaryOp, "^"];
       case "<":
         if (this.peekEq("=")) {

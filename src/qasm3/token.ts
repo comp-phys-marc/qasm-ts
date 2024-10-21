@@ -248,6 +248,7 @@ const lookupMap: object = {
   "+=": Token.CompoundArithmeticOp,
   "-=": Token.CompoundArithmeticOp,
   "*=": Token.CompoundArithmeticOp,
+  "^=": Token.CompoundArithmeticOp,
   arccos: Token.Arccos,
   arcsin: Token.Arcsin,
   arctan: Token.Arctan,
