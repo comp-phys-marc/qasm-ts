@@ -129,7 +129,7 @@ class BadClassicalTypeError extends Error {
   constructor(message?: string) {
     super(message);
     Object.setPrototypeOf(this, new.target.prototype);
-    this.name = BadStringLiteralError.name;
+    this.name = BadClassicalTypeError.name;
   }
 }
 
@@ -138,7 +138,16 @@ class BadExpressionError extends Error {
   constructor(message?: string) {
     super(message);
     Object.setPrototypeOf(this, new.target.prototype);
-    this.name = BadStringLiteralError.name;
+    this.name = BadExpressionError.name;
+  }
+}
+
+/** Class representing an error in defining or calling a custom subroutine. */
+class BadSubroutineError extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+    this.name = BadSubroutineError.name;
   }
 }
 
@@ -147,7 +156,7 @@ class BadLoopError extends Error {
   constructor(message?: string) {
     super(message);
     Object.setPrototypeOf(this, new.target.prototype);
-    this.name = BadStringLiteralError.name;
+    this.name = BadLoopError.name;
   }
 }
 
@@ -156,7 +165,7 @@ class BadQuantumInstructionError extends Error {
   constructor(message?: string) {
     super(message);
     Object.setPrototypeOf(this, new.target.prototype);
-    this.name = BadStringLiteralError.name;
+    this.name = BadQuantumInstructionError.name;
   }
 }
 
@@ -180,6 +189,7 @@ export {
   BadStringLiteralError,
   BadClassicalTypeError,
   BadExpressionError,
+  BadSubroutineError,
   BadLoopError,
   BadQuantumInstructionError,
   ReturnErrorConstructor,
