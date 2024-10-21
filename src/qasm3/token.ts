@@ -179,6 +179,8 @@ enum Token {
   Complex,
   // 89; $ symbol
   Dollar,
+  // 90; array keyword
+  Array,
 }
 
 const lookupMap: object = {
@@ -273,6 +275,7 @@ const lookupMap: object = {
   "@": Token.At,
   complex: Token.Complex,
   "$": Token.Dollar,
+  array: Token.Array,
 };
 
 /**
