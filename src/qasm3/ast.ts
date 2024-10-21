@@ -450,21 +450,10 @@ class ArrayInitializer extends Expression {
 class ArrayAccess extends Expression {
   array: Identifier;
   indices: Array<Expression>;
-  constructor(array: Identifier, indices: Array<Expression>) {
+  constructor(array: Identifier, indices?: Array<Expression>) {
     super();
     this.array = array;
     this.indices = indices;
-  }
-}
-
-/** Class representing an array assignment. */
-class ArrayAssignment extends Statement {
-  target: ArrayAccess;
-  value: Expression;
-  constructor(target: ArrayAccess, value: Expression) {
-    super();
-    this.target = target;
-    this.value = value;
   }
 }
 
@@ -524,11 +513,11 @@ class ClassicalDeclaration extends Statement {
 
 /** Class representing an expression to a left value. */
 class AssignmentStatement extends Statement {
-  leftValue: SubscriptedIdentifier | Identifier;
-  rightValue: Expression | SubroutineCall;
+  leftValue: SubscriptedIdentifier | Identifier | ArrayAccess;
+  rightValue: Expression | SubroutineCall | ArrayAccess;
   constructor(
-    leftValue: SubscriptedIdentifier | Identifier,
-    rightValue: Expression | SubroutineCall,
+    leftValue: SubscriptedIdentifier | Identifier | ArrayAccess,
+    rightValue: Expression | SubroutineCall | ArrayAccess,
   ) {
     super();
     this.leftValue = leftValue;
@@ -962,7 +951,6 @@ export {
   ArrayDeclaration,
   ArrayInitializer,
   ArrayAccess,
-  ArrayAssignment,
   QuantumMeasurement,
   QuantumMeasurementAssignment,
   ClassicalDeclaration,

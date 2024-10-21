@@ -61,7 +61,6 @@ import {
   ArrayDeclaration,
   ArrayInitializer,
   ArrayAccess,
-  ArrayAssignment,
   QuantumMeasurement,
   QuantumMeasurementAssignment,
   ClassicalDeclaration,
@@ -389,6 +388,7 @@ class Parser {
       }
       case Token.Array: {
         const [arrayNode, arrayConsumed] = this.arrayDeclaration(tokens);
+        this.customArrays.add(arrayNode.identifier.name);
         return [[arrayNode], arrayConsumed];
       }
       case Token.Id:
@@ -627,17 +627,23 @@ class Parser {
         ];
       }
       case Token.Id:
-        // Handle identifiers and subscripted identifiers
+        // Handle array identifiers, identifiers, and subscripted identifiers
         if (this.matchNext(tokens.slice(1), [Token.LSParen])) {
-          const identifier = new Identifier(token[1].toString());
-          const [subscript, subscriptConsumed] = this.parseSubscript(
-            tokens.slice(1),
-          );
-          consumed += subscriptConsumed;
-          return [
-            new SubscriptedIdentifier(identifier.name, subscript),
-            consumed,
-          ];
+          if (this.isArray(tokens)) {
+            const [arrayAccess, arrayAccessConsumed] =
+              this.parseArrayAccess(tokens);
+            return [arrayAccess, arrayAccessConsumed];
+          } else {
+            const identifier = new Identifier(token[1].toString());
+            const [subscript, subscriptConsumed] = this.parseSubscript(
+              tokens.slice(1),
+            );
+            consumed += subscriptConsumed;
+            return [
+              new SubscriptedIdentifier(identifier.name, subscript),
+              consumed,
+            ];
+          }
         }
         return [new Identifier(token[1].toString()), consumed];
       case Token.Pi:
@@ -1782,12 +1788,11 @@ class Parser {
   /**
    * Parses an array statement.
    * @param tokens - Tokens to parse.
-   * @return A ArrayDeclaration node and the number of tokens consumed.
+   * @return An ArrayDeclaration node and the number of tokens consumed.
    */
   arrayDeclaration(
     tokens: Array<[Token, (number | string)?]>,
   ): [ArrayDeclaration, number] {
-    console.log(tokens);
     let consumed = 1;
     if (!this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
       throwParserError(
@@ -1869,7 +1874,7 @@ class Parser {
   /**
    * Parses an array initializer.
    * @param tokens - Tokens to parse.
-   * @return A ArrayInitializer node and the number of tokens consumed.
+   * @return An ArrayInitializer node and the number of tokens consumed.
    */
   parseArrayInitializer(
     tokens: Array<[Token, (number | string)?]>,
@@ -1915,6 +1920,62 @@ class Parser {
     consumed++;
 
     return [new ArrayInitializer(values), consumed];
+  }
+
+  /**
+   * Parses an array access.
+   * @param tokens - Tokens to parse.
+   * @return An ArrayAccess  node and the number of tokens consumed.
+   */
+  parseArrayAccess(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [ArrayAccess, number] {
+    let consumed = 0;
+    if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+      throwParserError(
+        BadExpressionError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected identifier for array access",
+      );
+    }
+    const identifier = new Identifier(tokens[0][1].toString());
+    consumed++;
+
+    const indices: Array<Expression> = [];
+    if (this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
+      consumed++;
+      while (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+        const [index, indexConsumed] = this.binaryExpression(
+          tokens.slice(consumed),
+        );
+        indices.push(index);
+        consumed += indexConsumed;
+
+        if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
+          consumed++;
+        } else if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+          throwParserError(
+            BadExpressionError,
+            tokens[consumed],
+            this.index + consumed,
+            "expected comma or closing bracket for array access",
+          );
+        }
+      }
+
+      if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+        throwParserError(
+          MissingBraceError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected closing bracket ] for array access",
+        );
+      }
+      consumed++;
+    }
+
+    return [new ArrayAccess(identifier, indices), consumed];
   }
 
   /**
@@ -2454,6 +2515,15 @@ class Parser {
       return false;
     }
     return token[1].toString() === "im";
+  }
+
+  /** Checks whether an identifier is an array. */
+  private isArray(tokens: Array<[Token, (number | string)?]>): boolean {
+    if (tokens[0][0] !== Token.Id) {
+      return false;
+    }
+    const identifierName = tokens[0][1].toString();
+    return this.customArrays.has(identifierName);
   }
 
   /** TODO : update this
