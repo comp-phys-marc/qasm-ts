@@ -18,6 +18,7 @@ import {
   MissingBraceError,
   BadLoopError,
   BadQuantumInstructionError,
+  BadSubroutineError,
 } from "../errors";
 import {
   AstNode,
@@ -56,11 +57,9 @@ import {
   BinaryOp,
   Binary,
   Cast,
-  Index,
   IndexSet,
   QuantumMeasurement,
   QuantumMeasurementAssignment,
-  Designator,
   ClassicalDeclaration,
   AssignmentStatement,
   QuantumDeclaration,
@@ -77,6 +76,7 @@ import {
   SubroutineBlock,
   QuantumGateDefinition,
   SubroutineDefinition,
+  SubroutineCall,
   BranchingStatement,
   ForLoopStatement,
   WhileLoopStatement,
@@ -206,25 +206,34 @@ class Parser {
    */
   parse(): Array<AstNode> {
     let ast: Array<AstNode> = [];
-    let i = 0;
-    while (i < this.tokens.length - 1) {
-      this.index = i;
-      const nodes = this.parseNode(this.tokens.slice(i))[0];
+    while (this.index < this.tokens.length - 1) {
+      console.log("----");
+      console.log(this.tokens[this.index]);
+      const [nodes, consumed] = this.parseNode(this.tokens.slice(this.index));
+      console.log(this.tokens[this.index]);
       ast = ast.concat(nodes ? nodes : []);
-      while (!this.matchNext(this.tokens.slice(i), [Token.Semicolon])) {
-        if (this.matchNext(this.tokens.slice(i), [Token.LCParen])) {
-          while (!this.matchNext(this.tokens.slice(i), [Token.RCParen])) {
-            i++;
-          }
-          break;
-        } else if (this.matchNext(this.tokens.slice(i), [Token.RCParen])) {
-          break;
-        }
-        i++;
-      }
-      i++;
+      this.index += consumed;
     }
     return ast;
+    // let i = 0;
+    // while (i < this.tokens.length - 1) {
+    //   this.index = i;
+    //   const nodes = this.parseNode(this.tokens.slice(i))[0];
+    //   ast = ast.concat(nodes ? nodes : []);
+    //   while (!this.matchNext(this.tokens.slice(i), [Token.Semicolon])) {
+    //     if (this.matchNext(this.tokens.slice(i), [Token.LCParen])) {
+    //       while (!this.matchNext(this.tokens.slice(i), [Token.RCParen])) {
+    //         i++;
+    //       }
+    //       break;
+    //     } else if (this.matchNext(this.tokens.slice(i), [Token.RCParen])) {
+    //       break;
+    //     }
+    //     i++;
+    //   }
+    //   i++;
+    // }
+    // return ast;
   }
 
   /**
@@ -239,6 +248,7 @@ class Parser {
     allowVariables = true,
   ): [Array<AstNode>, number] {
     const token = tokens[0];
+    console.log(tokens[this.index]);
     switch (token[0]) {
       case Token.DefcalGrammar: {
         const [defcalGrammarNode, consumed] =
@@ -247,7 +257,7 @@ class Parser {
       }
       case Token.Include: {
         const [includeNode, consumed] = this.include(tokens);
-        if (includeNode.filename === "\"stdgates.inc\"") {
+        if (includeNode.filename === '"stdgates.inc"') {
           this.stdGates();
         }
         return [[includeNode], consumed];
@@ -290,6 +300,8 @@ class Parser {
         return [[new ContinueStatement()], 1];
       case Token.Bit:
         if (this.isMeasurement(tokens.slice(1))) {
+          console.log("here2");
+          console.log(tokens);
           const [measureNode, measureConsumed] = this.measureStatement(tokens);
           return [[measureNode], measureConsumed];
         } else {
@@ -307,6 +319,16 @@ class Parser {
         const [gateNode, gateConsumed] = this.quantumGateDefinition(tokens);
         this.customGates.add(gateNode.name.name);
         return [[gateNode], gateConsumed];
+      }
+      case Token.Return: {
+        const [returnNode, returnConsumed] = this.returnStatement(tokens);
+        return [[returnNode], returnConsumed];
+      }
+      case Token.Def: {
+        const [subroutineNode, subroutineConsumed] =
+          this.subroutineDefinition(tokens);
+        this.subroutines.add(subroutineNode.name.name);
+        return [[subroutineNode], subroutineConsumed];
       }
       case Token.Ctrl:
       case Token.NegCtrl:
@@ -364,6 +386,10 @@ class Parser {
         if (this.isQuantumGateCall(tokens)) {
           const [gateCallNode, gateCallConsumed] = this.quantumGateCall(tokens);
           return [[gateCallNode], gateCallConsumed];
+        } else if (this.isSubroutineCall(tokens)) {
+          const [subroutineCallNode, subroutineCallConsumed] =
+            this.subroutineCall(tokens);
+          return [[subroutineCallNode], subroutineCallConsumed];
         } else if (this.isMeasurement(tokens)) {
           const [measureNode, measureConsumed] = this.measureStatement(tokens);
           return [[measureNode], measureConsumed];
@@ -501,14 +527,15 @@ class Parser {
       }
     }
 
-    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
-      throwParserError(
-        MissingSemicolonError,
-        tokens[consumed],
-        this.index + consumed,
-        "expected semicolon",
-      );
-    }
+    // if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+    //   throwParserError(
+    //     MissingSemicolonError,
+    //     tokens[consumed],
+    //     this.index + consumed,
+    //     "expected semicolon",
+    //   );
+    // }
+    // consumed++;
 
     return [
       new ClassicalDeclaration(
@@ -594,29 +621,8 @@ class Parser {
         const [expr, exprConsumed] = this.unaryExpression(tokens.slice(1));
         return [new Unary(token[1] as UnaryOp, expr), consumed + exprConsumed];
       }
-      case Token.LParen: {
-        let consumed = 1;
-        const args: Expression[] = [];
-        while (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
-          const [arg, argConsumed] = this.binaryExpression(
-            tokens.slice(consumed),
-          );
-          args.push(arg);
-          consumed += argConsumed;
-          if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
-            consumed++;
-          } else if (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
-            throwParserError(
-              BadExpressionError,
-              tokens[consumed],
-              this.index + consumed,
-              "expected comma or closing parenthesis ) in parenthesized expression",
-            );
-          }
-        }
-        consumed++;
-        return [new Parameters(args), consumed];
-      }
+      case Token.LParen:
+        return this.parseParameters(tokens);
       default:
         if (isTypeToken(token[0])) {
           return this.parseTypeCast(tokens);
@@ -638,15 +644,17 @@ class Parser {
   binaryExpression(
     tokens: Array<[Token, (number | string)?]>,
   ): [Expression, number] {
-    let [leftExpr, leftConsumed] = this.unaryExpression(tokens);
-    let index = leftConsumed;
+    const unaryExpr = this.unaryExpression(tokens);
+    let leftExpr = unaryExpr[0];
+    const leftConsumed = unaryExpr[1];
+    let consumed = leftConsumed;
 
-    while (index < tokens.length) {
-      const token = tokens[index];
+    while (consumed < tokens.length) {
+      const token = tokens[consumed];
       if (token[0] === Token.BinaryOp || token[0] === Token.ArithmeticOp) {
-        index++;
+        consumed++;
         const [rightExpr, rightConsumed] = this.unaryExpression(
-          tokens.slice(index),
+          tokens.slice(consumed),
         );
         if (token[0] === Token.BinaryOp) {
           leftExpr = new Binary(token[1] as BinaryOp, leftExpr, rightExpr);
@@ -657,13 +665,13 @@ class Parser {
             rightExpr,
           );
         }
-        index += rightConsumed;
+        consumed += rightConsumed;
       } else {
         break;
       }
     }
 
-    return [leftExpr, index];
+    return [leftExpr, consumed];
   }
 
   /**
@@ -699,7 +707,7 @@ class Parser {
       const arithmeticExpression = new Arithmetic(arithmeticOp, lhs, rhs);
       return [
         new AssignmentStatement(
-          lhs as SubscriptedIdentifier,
+          lhs as SubscriptedIdentifier | Identifier,
           arithmeticExpression,
         ),
         consumed,
@@ -717,16 +725,30 @@ class Parser {
       );
     }
 
-    const [rhs, rhsConsumed] = this.binaryExpression(tokens.slice(consumed));
-    consumed += rhsConsumed;
-    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
-      throwParserError(
-        MissingSemicolonError,
-        tokens[consumed],
-        this.index + consumed,
-        "expected semicolon",
+    let rhs: Expression | SubroutineCall;
+    if (this.isSubroutineCall(tokens.slice(consumed))) {
+      const [subroutineCall, subroutineCallConsumed] = this.subroutineCall(
+        tokens.slice(consumed),
       );
+      rhs = subroutineCall;
+      consumed += subroutineCallConsumed;
+    } else {
+      const [rhsExpression, rhsConsumed] = this.binaryExpression(
+        tokens.slice(consumed),
+      );
+      rhs = rhsExpression;
+      consumed += rhsConsumed;
     }
+
+    // if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+    //   throwParserError(
+    //     MissingSemicolonError,
+    //     tokens[consumed],
+    //     this.index + consumed,
+    //     "expected semicolon",
+    //   );
+    // }
+    // consumed++;
 
     return [
       new AssignmentStatement(lhs as SubscriptedIdentifier, rhs),
@@ -802,15 +824,24 @@ class Parser {
       consumed++;
     }
 
-    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+    if (
+      !(
+        this.matchNext(tokens.slice(consumed), [Token.Semicolon]) ||
+        this.matchNext(tokens.slice(consumed), [Token.Comma]) ||
+        this.matchNext(tokens.slice(consumed), [Token.RParen])
+      )
+    ) {
       throwParserError(
-        MissingSemicolonError,
+        BadQregError,
         tokens[consumed],
         this.index + consumed,
-        "expected semicolon after quantum register declaration",
+        "expected semicolon, comma, or closing parenthesis after quantum register declaration",
       );
     }
-    consumed++;
+    // Only consume semicolon, if paren or comma that token will be handled in calling function
+    if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      consumed++;
+    }
 
     return [new QuantumDeclaration(identifier as Identifier, size), consumed];
   }
@@ -824,12 +855,18 @@ class Parser {
     tokens: Array<[Token, (number | string)?]>,
   ): [QuantumMeasurementAssignment | QuantumMeasurement, number] {
     let consumed = 0;
+    console.log(tokens);
 
     // Legacy syntax: measure qubit|qubit[] -> bit|bit[];
     if (this.matchNext(tokens.slice(consumed), [Token.Measure])) {
       consumed++;
       const qubitIdentifiers: (Identifier | SubscriptedIdentifier)[] = [];
-      while (!this.matchNext(tokens.slice(consumed), [Token.Arrow])) {
+      while (
+        !(
+          this.matchNext(tokens.slice(consumed), [Token.Arrow]) ||
+          this.matchNext(tokens.slice(consumed), [Token.Semicolon])
+        )
+      ) {
         const [identifier, idConsumed] = this.unaryExpression(
           tokens.slice(consumed),
         );
@@ -838,8 +875,12 @@ class Parser {
 
         if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
           consumed++;
-        } else if (!this.matchNext(tokens.slice(consumed), [Token.Arrow])) {
-          console.log(tokens.slice(consumed));
+        } else if (
+          !(
+            this.matchNext(tokens.slice(consumed), [Token.Arrow]) ||
+            this.matchNext(tokens.slice(consumed), [Token.Semicolon])
+          )
+        ) {
           throwParserError(
             BadMeasurementError,
             tokens[consumed],
@@ -850,7 +891,7 @@ class Parser {
       }
       const measurement = new QuantumMeasurement(qubitIdentifiers);
 
-      // If there's an arros, build a QuantumMeasurementAssignment
+      // If there's an arrow, build a QuantumMeasurementAssignment
       if (this.matchNext(tokens.slice(consumed), [Token.Arrow])) {
         consumed++;
         const [identifier, idConsumed] = this.unaryExpression(
@@ -943,6 +984,139 @@ class Parser {
         consumed,
       ];
     }
+  }
+
+  /**
+   * Parses a subroutine return statement.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the SubroutineDefinition and the number of tokens consumed.
+   */
+  returnStatement(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [ReturnStatement, number] {
+    let consumed = 1;
+    let expression: Expression | null = null;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      const [expr, exprConsumed] = this.parseNode(tokens.slice(consumed));
+      expression = expr;
+      consumed += exprConsumed;
+    }
+
+    return [new ReturnStatement(expression), consumed];
+  }
+
+  /**
+   * Parses a subroutine definition.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the SubroutineDefinition and the number of tokens consumed.
+   */
+  subroutineDefinition(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [SubroutineDefinition, number] {
+    let consumed = 1;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+      throwParserError(
+        BadSubroutineError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected subroutine name",
+      );
+    }
+    const [name, nameConsumed] = this.unaryExpression(tokens.slice(consumed));
+    consumed += nameConsumed;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.LParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected opening parenthesis for subroutine definition",
+      );
+    }
+    const [params, paramsConsumed] = this.parseParameters(
+      tokens.slice(consumed),
+    );
+    consumed += paramsConsumed;
+
+    let returnType: ClassicalType | null = null;
+    if (this.matchNext(tokens.slice(consumed), [Token.Arrow])) {
+      consumed++;
+      const [type, typeConsumed] = this.parseClassicalType(
+        tokens.slice(consumed),
+      );
+      returnType = type;
+      consumed += typeConsumed;
+    }
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.LCParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected opening brace for subroutine body",
+      );
+    }
+    const [body, bodyConsumed] = this.programBlock(tokens.slice(consumed));
+    consumed += bodyConsumed;
+
+    return [
+      new SubroutineDefinition(
+        name as Identifier,
+        body as SubroutineBlock,
+        params,
+        returnType,
+      ),
+      consumed,
+    ];
+  }
+
+  /**
+   * Parses a subroutine call.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the SubroutineCall and the number of tokens consumed.
+   */
+  subroutineCall(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [SubroutineCall, number] {
+    let consumed = 0;
+    if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+      throwParserError(
+        BadSubroutineError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected subroutine name",
+      );
+    }
+    const [subroutineName, subroutineNameConsumed] = this.unaryExpression(
+      tokens.slice(consumed),
+    );
+    consumed += subroutineNameConsumed;
+
+    let callParams: Parameters | null = null;
+    if (this.matchNext(tokens.slice(consumed), [Token.LParen])) {
+      const [params, paramsConsumed] = this.parseParameters(
+        tokens.slice(consumed),
+      );
+      callParams = params;
+      consumed += paramsConsumed;
+    }
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      throwParserError(
+        MissingSemicolonError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected semicolon after subroutine call",
+      );
+    }
+    consumed++;
+
+    return [
+      new SubroutineCall(subroutineName as Identifier, callParams),
+      consumed,
+    ];
   }
 
   /**
@@ -1183,11 +1357,26 @@ class Parser {
     if (this.matchNext(tokens, [Token.LParen])) {
       consumed++;
       while (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
-        const [param, paramConsumed] = this.binaryExpression(
-          tokens.slice(consumed),
-        );
-        args.push(param);
-        consumed += paramConsumed;
+        if (this.matchNext(tokens.slice(consumed), [Token.Qubit])) {
+          const [qubitParam, qubitConsumed] = this.parseNode(
+            tokens.slice(consumed),
+          );
+          args.push(qubitParam);
+          consumed += qubitConsumed;
+        } else if (this.matchNext(tokens.slice(consumed), [Token.Bit])) {
+          console.log("here");
+          const [bitParam, bitConsumed] = this.parseNode(
+            tokens.slice(consumed),
+          );
+          args.push(bitParam);
+          consumed += bitConsumed;
+        } else {
+          const [param, paramConsumed] = this.binaryExpression(
+            tokens.slice(consumed),
+          );
+          args.push(param);
+          consumed += paramConsumed;
+        }
 
         if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
           consumed++;
@@ -1683,24 +1872,45 @@ class Parser {
   ): [ProgramBlock, number] {
     const statements: (Statement | Expression)[] = [];
     let consumed = 0;
+    let braceCount = 0;
 
     if (this.matchNext(tokens, [Token.LCParen])) {
       consumed++;
-      while (!this.matchNext(tokens.slice(consumed), [Token.RCParen])) {
+      braceCount++;
+      while (braceCount > 0 && consumed < tokens.length) {
+        if (this.matchNext(tokens.slice(consumed), [Token.LCParen])) {
+          braceCount++;
+        } else if (this.matchNext(tokens.slice(consumed), [Token.RCParen])) {
+          braceCount--;
+        }
+
+        if (braceCount === 0) {
+          break;
+        }
+
         const [node, nodeConsumed] = this.parseNode(tokens.slice(consumed));
-        if (node) {
+        if (node && node.length > 0) {
           statements.push(node[0]);
         }
         consumed += nodeConsumed;
+
         if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
           consumed++;
         }
       }
+      if (braceCount !== 0) {
+        throwParserError(
+          MissingBraceError,
+          tokens[consumed],
+          this.index + consumed,
+          "mismatched curly braces in program block",
+        );
+      }
       consumed++;
     } else {
       const [node, nodeConsumed] = this.parseNode(tokens.slice(consumed));
-      if (node) {
-        statements.push(node);
+      if (node && node.length > 0) {
+        statements.push(node[0]);
       }
       consumed += nodeConsumed;
       if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
@@ -1953,14 +2163,14 @@ class Parser {
     }
   }
 
-  /**
-   * Checks whether a Bit token precedes a measurement statement.
-   */
+  /** Checks whether a Bit token precedes a measurement statement. */
   private isMeasurement(tokens: Array<[Token, (number | string)?]>): boolean {
     let i = 0;
     while (
-      tokens[i][0] !== Token.EqualsAssmt &&
-      tokens[i][0] !== Token.Semicolon
+      i < tokens.length - 1 &&
+      tokens[i][0] !== Token.LCParen &&
+      tokens[i][0] !== Token.Semicolon &&
+      tokens[i][0] !== Token.EqualsAssmt
     ) {
       i++;
     }
@@ -1969,20 +2179,21 @@ class Parser {
     );
   }
 
-  /**
-   * Checks whether the statement is part of an assignment.
-   */
+  /** Checks whether the statement is part of an assignment. */
   private isAssignment(tokens: Array<[Token, (number | string)?]>): boolean {
     let i = 0;
-    while (tokens[i][0] !== Token.EqualsAssmt) {
+    while (
+      i < tokens.length - 1 &&
+      tokens[i][0] !== Token.LCParen &&
+      tokens[i][0] !== Token.Semicolon &&
+      tokens[i][0] !== Token.EqualsAssmt
+    ) {
       i++;
     }
     return tokens[i][0] === Token.EqualsAssmt;
   }
 
-  /**
-   * Checks whether an identifier is a quantum gate call.
-   */
+  /** Checks whether an identifier is a quantum gate call. */
   private isQuantumGateCall(
     tokens: Array<[Token, (number | string)?]>,
   ): boolean {
@@ -1992,6 +2203,14 @@ class Parser {
       this.standardGates.has(gateName) ||
       this.customGates.has(gateName)
     );
+  }
+
+  /** Checks whether an identifier is a subroutine call. */
+  private isSubroutineCall(
+    tokens: Array<[Token, (number | string)?]>,
+  ): boolean {
+    const subroutineName = tokens[0][1] as string;
+    return this.subroutines.has(subroutineName);
   }
 
   /** TODO : update this
