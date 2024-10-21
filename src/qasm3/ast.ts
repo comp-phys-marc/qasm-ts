@@ -380,17 +380,6 @@ class Cast extends Expression {
   }
 }
 
-/** Class representing an index. */
-class Index extends Expression {
-  target: Expression;
-  index: Expression;
-  constructor(target: Expression, index: Expression) {
-    super();
-    this.target = target;
-    this.index = index;
-  }
-}
-
 /**
  * Class representing a literal index set of values.
  *
@@ -428,24 +417,13 @@ class QuantumMeasurement extends AstNode {
 class QuantumMeasurementAssignment extends Statement {
   identifier: Identifier | SubscriptedIdentifier;
   quantumMeasurement: QuantumMeasurement;
-  constructor(identifier: Identifier | SubscriptedIdentifier, quantumMeasurement: QuantumMeasurement) {
+  constructor(
+    identifier: Identifier | SubscriptedIdentifier,
+    quantumMeasurement: QuantumMeasurement,
+  ) {
     super();
     this.identifier = identifier;
     this.quantumMeasurement = quantumMeasurement;
-  }
-}
-
-/**
- * Class representing a designator.
- *
- * designator
- *  : LBRACKET expression RBRACKET
- */
-class Designator extends AstNode {
-  expression: Expression;
-  constructor(expression: Expression) {
-    super();
-    this.expression = expression;
   }
 }
 
@@ -471,9 +449,12 @@ class ClassicalDeclaration extends Statement {
 
 /** Class representing an expression to a left value. */
 class AssignmentStatement extends Statement {
-  leftValue: SubscriptedIdentifier;
-  rightValue: Expression;
-  constructor(leftValue: SubscriptedIdentifier, rightValue: Expression) {
+  leftValue: SubscriptedIdentifier | Identifier;
+  rightValue: Expression | SubroutineCall;
+  constructor(
+    leftValue: SubscriptedIdentifier | Identifier,
+    rightValue: Expression | SubroutineCall,
+  ) {
     super();
     this.leftValue = leftValue;
     this.rightValue = rightValue;
@@ -667,18 +648,32 @@ class QuantumGateDefinition extends Statement {
  *  returnSignature? subroutineBlock
  */
 class SubroutineDefinition extends Statement {
-  identifier: Identifier;
+  name: Identifier;
   subroutineBlock: SubroutineBlock;
-  args: Parameters | Array<Expression> | null;
+  args: Parameters | null;
+  returnType: ClassicalType | null;
   constructor(
-    identifier: Identifier,
+    name: Identifier,
     subroutineBlock: SubroutineBlock,
-    args: Parameters | Array<any> | null,
+    args: Parameters | null,
+    returnType?: ClassicalType,
   ) {
     super();
-    this.identifier = identifier;
+    this.name = name;
     this.subroutineBlock = subroutineBlock;
     this.args = args;
+    this.returnType = returnType ? returnType : null;
+  }
+}
+
+/** Class representing a subroutine call. */
+class SubroutineCall extends Statement {
+  subroutineName: Identifier;
+  parameters: Parameters | null;
+  constructor(subroutineName: Identifier, parameters?: Parameters) {
+    super();
+    this.subroutineName = subroutineName;
+    this.parameters = parameters ? parameters : null;
   }
 }
 
@@ -873,11 +868,9 @@ export {
   BinaryOp,
   Binary,
   Cast,
-  Index,
   IndexSet,
   QuantumMeasurement,
   QuantumMeasurementAssignment,
-  Designator,
   ClassicalDeclaration,
   AssignmentStatement,
   QuantumDeclaration,
@@ -894,6 +887,7 @@ export {
   SubroutineBlock,
   QuantumGateDefinition,
   SubroutineDefinition,
+  SubroutineCall,
   BranchingStatement,
   ForLoopStatement,
   WhileLoopStatement,
