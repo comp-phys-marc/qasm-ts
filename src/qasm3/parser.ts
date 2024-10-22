@@ -1992,7 +1992,7 @@ class Parser {
     );
     consumed += identifierConsumed;
 
-    let initializer: ArrayInitializer | null = null;
+    let initializer: ArrayInitializer | Expression | null = null;
     if (this.matchNext(tokens.slice(consumed), [Token.EqualsAssmt])) {
       consumed++;
       const [parsedInitializer, initializerConsumed] =
@@ -2029,15 +2029,12 @@ class Parser {
    */
   parseArrayInitializer(
     tokens: Array<[Token, (number | string)?]>,
-  ): [ArrayInitializer, number] {
+  ): [ArrayInitializer | Expression, number] {
     let consumed = 0;
     if (!this.matchNext(tokens, [Token.LCParen])) {
-      throwParserError(
-        MissingBraceError,
-        tokens[consumed],
-        this.index + consumed,
-        "expected { for array initializer",
-      );
+      const [expr, exprConsumed] = this.binaryExpression(tokens.slice(consumed));
+      consumed += exprConsumed;
+      return [expr, consumed];
     }
     consumed++;
 

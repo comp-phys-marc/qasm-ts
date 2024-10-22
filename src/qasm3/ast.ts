@@ -434,12 +434,12 @@ class ArrayDeclaration extends Statement {
   baseType: ClassicalType;
   dimensions: Array<Expression>;
   identifier: Identifier;
-  initializer: ArrayInitializer | null;
+  initializer: ArrayInitializer | Expression | null;
   constructor(
     baseType: ClassicalType,
     dimensions: Array<Expression>,
     identifier: Identifier,
-    initializer?: ArrayInitializer | null,
+    initializer?: ArrayInitializer | Expression | null,
   ) {
     super();
     this.baseType = baseType;
