@@ -96,6 +96,7 @@ import {
   Arithmetic,
   ImaginaryLiteral,
   HardwareQubit,
+  StretchType,
 } from "./ast";
 
 /**
@@ -284,6 +285,7 @@ class Parser {
       case Token.UInt:
       case Token.Bool:
       case Token.Angle:
+      case Token.Stretch:
       case Token.Complex:
       case Token.Duration: {
         const [classicalNode, consumed] = this.classicalDeclaration(
@@ -2447,6 +2449,8 @@ class Parser {
         return new BoolType();
       case Token.Bit:
         return new BitType(width);
+      case Token.Stretch:
+        return new StretchType();
       case Token.Duration:
         return new DurationType();
       case Token.Angle:

@@ -183,6 +183,8 @@ enum Token {
   Array,
   // 91; durationof function keyword
   DurationOf,
+  // 92; stretch type keyword
+  Stretch,
 }
 
 const lookupMap: object = {
@@ -279,6 +281,7 @@ const lookupMap: object = {
   "$": Token.Dollar,
   array: Token.Array,
   durationof: Token.DurationOf,
+  stretch: Token.Stretch,
 };
 
 /**

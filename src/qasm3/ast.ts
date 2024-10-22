@@ -144,6 +144,9 @@ class AngleType extends ClassicalType {
   }
 }
 
+/** Class representing the stretch type. */
+class StretchType extends ClassicalType {}
+
 /** Class representing a duration type. */
 class DurationType extends ClassicalType {}
 
@@ -930,6 +933,7 @@ export {
   UIntType,
   BitType,
   AngleType,
+  StretchType,
   DurationType,
   Range,
   Identifier,
