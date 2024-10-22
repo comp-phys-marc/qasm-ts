@@ -4,7 +4,6 @@ import { Token, notParam } from "./token";
 import { OpenQASMVersion } from "../version";
 import {
   BadQregError,
-  BadBarrierError,
   BadMeasurementError,
   BadGateError,
   BadParameterError,
@@ -139,6 +138,9 @@ class Parser {
   /** User defined arrays. */
   customArrays: Set<string>;
 
+  /** User defined aliases. */
+  aliases: Map<string, string>;
+
   /** Index of the current token. */
   index: number;
 
@@ -165,6 +167,7 @@ class Parser {
     this.customGates = new Set();
     this.subroutines = new Set();
     this.customArrays = new Set();
+    this.aliases = new Map();
     this.index = 0;
     this.machineFloatWidth = defaultFloatWidth ? defaultFloatWidth : 64;
     this.machineIntSize = machineIntSize ? machineIntSize : 32;
@@ -308,6 +311,10 @@ class Parser {
       }
       case Token.Continue:
         return [[new ContinueStatement()], 1];
+      case Token.Let: {
+        const [letNode, letConsumed] = this.aliasStatement(tokens);
+        return [[letNode], letConsumed];
+      }
       case Token.Bit:
         if (this.isMeasurement(tokens.slice(1))) {
           const [measureNode, measureConsumed] = this.measureStatement(tokens);
@@ -1495,6 +1502,60 @@ class Parser {
   }
 
   /**
+   * Parses an alias statement.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the AliasStatement and the number of tokens consumed.
+   */
+  aliasStatement(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [AliasStatement, number] {
+    let consumed = 1;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+      throwParserError(
+        BadExpressionError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected identifier for alias statement",
+      );
+    }
+    const [identifier, identifierConsumed] = this.unaryExpression(
+      tokens.slice(consumed),
+    );
+    consumed += identifierConsumed;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.EqualsAssmt])) {
+      throwParserError(
+        BadExpressionError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected `=` symbol following identifier for alias statement",
+      );
+    }
+    consumed++;
+
+    const [aliasExpression, aliasExpressionConsumed] = this.binaryExpression(
+      tokens.slice(consumed),
+    );
+    consumed += aliasExpressionConsumed;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      throwParserError(
+        MissingSemicolonError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected semicolon",
+      );
+    }
+    consumed++;
+
+    return [
+      new AliasStatement(identifier as Identifier, aliasExpression),
+      consumed,
+    ];
+  }
+
+  /**
    * Parses a quantum reset.
    * @param tokens - Remaining tokens to parse.
    * @return A tuple containing the QuantumReset and the number of tokens consumed.
@@ -1533,11 +1594,28 @@ class Parser {
    */
   parseSubscript(
     tokens: Array<[Token, (number | string)?]>,
-  ): [Expression | Range, number] {
+  ): [Expression | Range | IndexSet, number] {
     let consumed = 1;
     let start: Expression | null = null;
     let step: Expression = new IntegerLiteral(1);
     let stop: Expression | null = null;
+
+    if (this.matchNext(tokens.slice(consumed), [Token.LCParen])) {
+      const [indexSet, indexSetConsumed] = this.parseIndexSet(
+        tokens.slice(consumed),
+      );
+      consumed += indexSetConsumed;
+      if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+        throwParserError(
+          MissingBraceError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected closing curly bracket } for index set",
+        );
+      }
+      consumed++;
+      return [indexSet, consumed];
+    }
 
     if (!this.matchNext(tokens.slice(consumed), [Token.Colon])) {
       // Parse start
