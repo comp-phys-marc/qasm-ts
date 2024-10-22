@@ -1712,6 +1712,25 @@ class Parser {
     tokens: Array<[Token, (number | string)?]>,
   ): [Expression, number] {
     let consumed = 1;
+    let widthExpr: Expression | null = null;
+    if (this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
+      consumed++;
+      const [width, widthConsumed] = this.binaryExpression(
+        tokens.slice(consumed),
+      );
+      consumed += widthConsumed;
+      widthExpr = width;
+      if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+        throwParserError(
+          MissingBraceError,
+          tokens[consumed],
+          this.index + consumed,
+          "missing closing bracket ] for type designator",
+        );
+      }
+      consumed++;
+    }
+
     if (!this.matchNext(tokens.slice(consumed), [Token.LParen])) {
       throwParserError(
         MissingBraceError,
@@ -1734,7 +1753,7 @@ class Parser {
       );
     }
     consumed++;
-    const castType = this.createClassicalType(tokens[0][0]);
+    const castType = this.createClassicalType(tokens[0][0], widthExpr);
     return [new Cast(castType, castExpr), consumed];
   }
 
