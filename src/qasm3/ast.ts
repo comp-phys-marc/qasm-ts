@@ -359,6 +359,7 @@ enum ArithmeticOp {
   MOD = "%",
   PLUS = "+",
   MINUS = "-",
+  CONCAT = "++",
 }
 
 /** Class representing an arithmetic operator expression. */
@@ -631,9 +632,7 @@ class QuantumGateCall extends QuantumInstruction {
 class QuantumBarrier extends QuantumInstruction {
   qubits: Array<Identifier | SubscriptedIdentifier | HardwareQubit>;
   constructor(
-    qubits: Array<
-      Identifier | SubscriptedIdentifier | HardwareQubit
-    >,
+    qubits: Array<Identifier | SubscriptedIdentifier | HardwareQubit>,
   ) {
     super();
     this.qubits = qubits;

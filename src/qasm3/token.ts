@@ -240,6 +240,7 @@ const lookupMap: object = {
   "/": Token.ArithmeticOp,
   "%": Token.ArithmeticOp,
   "+": Token.ArithmeticOp,
+  "++": Token.ArithmeticOp,
   "-": Token.ArithmeticOp,
   "&": Token.BinaryOp,
   "|": Token.BinaryOp,

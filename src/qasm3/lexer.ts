@@ -337,6 +337,9 @@ class Lexer {
         if (this.peekEq("=")) {
           this.readChar();
           return [Token.CompoundArithmeticOp, "+="];
+        } else if (this.peekEq("+")) {
+          this.readChar();
+          return [Token.ArithmeticOp, "++"];
         }
         return [Token.ArithmeticOp, "+"];
       case "-": {
@@ -375,7 +378,7 @@ class Lexer {
         }
       case "^":
         if (this.peekEq("=")) {
-          this.readChar()
+          this.readChar();
           return [Token.CompoundArithmeticOp, "^="];
         }
         return [Token.BinaryOp, "^"];
