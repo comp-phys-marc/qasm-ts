@@ -72,7 +72,7 @@ class Version extends AstNode {
  *  | quantumReset
  *  | quantumBarrier
  */
-class QuantumInstrcution extends AstNode {}
+class QuantumInstruction extends AstNode {}
 
 /** Base class representing a classical computing type. */
 class ClassicalType extends AstNode {}
@@ -603,9 +603,9 @@ class QuantumGateModifier extends AstNode {
  * quantumGateCall
  *  : quantumGateModifier* quantumGateName ( LPAREN expressionList? RPAREN )? indexIdentifierList
  */
-class QuantumGateCall extends QuantumInstrcution {
+class QuantumGateCall extends QuantumInstruction {
   quantumGateName: Identifier;
-  qubits: Array<Identifier | HardwareQubit>;
+  qubits: Array<Identifier | SubscriptedIdentifier | HardwareQubit>;
   parameters: Parameters | null;
   modifiers: Array<QuantumGateModifier> | null;
   constructor(
@@ -628,7 +628,7 @@ class QuantumGateCall extends QuantumInstrcution {
  * quantumBarrier
  *  : `barrier` indexIdentifierList
  */
-class QuantumBarrier extends QuantumInstrcution {
+class QuantumBarrier extends QuantumInstruction {
   indexIdentifierList: Array<Identifier>;
   constructor(indexIdentifierList: Array<Identifier>) {
     super();
@@ -637,7 +637,7 @@ class QuantumBarrier extends QuantumInstrcution {
 }
 
 /** Class representing a quantum reset instruction. */
-class QuantumReset extends QuantumInstrcution {
+class QuantumReset extends QuantumInstruction {
   identifier: Identifier;
   constructor(identifier: Identifier) {
     super();
@@ -646,10 +646,10 @@ class QuantumReset extends QuantumInstrcution {
 }
 
 /** Class representing a quantum delay instruction. */
-class QuantumDelay extends QuantumInstrcution {
+class QuantumDelay extends QuantumInstruction {
   duration: Expression;
-  qubits: Array<Identifier>;
-  constructor(duration: Expression, qubits: Array<Identifier>) {
+  qubits: Array<Identifier | SubscriptedIdentifier | HardwareQubit>;
+  constructor(duration: Expression, qubits: Array<Identifier | HardwareQubit>) {
     super();
     this.duration = duration;
     this.qubits = qubits;

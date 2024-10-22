@@ -377,6 +377,10 @@ class Parser {
         const [durationOfNOde, consumed] = this.durationOf(tokens);
         return [[durationOfNOde], consumed];
       }
+      case Token.Delay: {
+        const [delayNode, delayConsumed] = this.delay(tokens);
+        return [[delayNode], delayConsumed];
+      }
       case Token.If: {
         const [ifNode, ifConsumed] = this.ifStatement(tokens);
         return [[ifNode], ifConsumed];
@@ -520,32 +524,6 @@ class Parser {
       initialValue = value;
       consumed += valueConsumed;
     }
-    console.log(initialValue);
-
-    if (
-      classicalType instanceof DurationType &&
-      !(initialValue instanceof DurationOf)
-    ) {
-      if (
-        this.matchNext(tokens.slice(consumed), [Token.Id]) &&
-        Object.values(DurationUnit).includes(
-          tokens[consumed][1] as DurationUnit,
-        )
-      ) {
-        initialValue = new DurationLiteral(
-          initialValue,
-          tokens[consumed][1].toString() as DurationUnit,
-        );
-        consumed++;
-      } else {
-        throwParserError(
-          BadClassicalTypeError,
-          tokens[consumed],
-          this.index + consumed,
-          "invalid duration unit",
-        );
-      }
-    }
 
     if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
       consumed++;
@@ -578,6 +556,14 @@ class Parser {
         if (this.isImaginary(tokens[consumed])) {
           return [
             new ImaginaryLiteral(`${token[1].toString()}im`),
+            consumed + 1,
+          ];
+        } else if (this.isDuration(tokens.slice(consumed))) {
+          return [
+            new DurationLiteral(
+              Number(token[1]),
+              tokens[consumed][1].toString() as DurationUnit,
+            ),
             consumed + 1,
           ];
         }
@@ -1280,7 +1266,44 @@ class Parser {
     }
 
     // Parse qubit arguments
-    const qubits: Array<Identifier | HardwareQubit> = [];
+    const [qubits, qubitsConsumed] = this.parseQubitList(
+      tokens.slice(consumed),
+    );
+    consumed += qubitsConsumed;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      throwParserError(
+        MissingSemicolonError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected semicolon",
+      );
+    }
+    consumed++;
+
+    return [
+      new QuantumGateCall(
+        gateName as Identifier,
+        qubits,
+        callParams,
+        modifiers,
+      ),
+      consumed,
+    ];
+  }
+
+  /**
+   * Parses a list of qubits.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the list of qubits and the number of tokens consumed.
+   */
+  parseQubitList(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [Array<Identifier | SubscriptedIdentifier | HardwareQubit>, number] {
+    let consumed = 0;
+    const qubits: Array<Identifier | SubscriptedIdentifier | HardwareQubit> =
+      [];
+
     while (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
       if (
         this.matchNext(tokens.slice(consumed), [Token.Dollar, Token.NNInteger])
@@ -1296,7 +1319,7 @@ class Parser {
         continue;
       } else if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
         throwParserError(
-          BadGateError,
+          BadExpressionError,
           tokens[consumed],
           this.index + consumed,
           "expected qubit argument",
@@ -1311,25 +1334,11 @@ class Parser {
       if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
         consumed++;
       } else if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
-        throwParserError(
-          BadGateError,
-          tokens[consumed],
-          this.index + consumed,
-          "expected comma or semicolon after qubit argument",
-        );
+        break;
       }
     }
-    consumed++;
 
-    return [
-      new QuantumGateCall(
-        gateName as Identifier,
-        qubits,
-        callParams,
-        modifiers,
-      ),
-      consumed,
-    ];
+    return [qubits, consumed];
   }
 
   /**
@@ -2137,6 +2146,56 @@ class Parser {
   }
 
   /**
+   * Parses a delay statement.
+   * @param tokens - Tokens to parse.
+   * @return A QuantumDelay node and the number of tokens consumed.
+   */
+  delay(tokens: Array<[Token, (number | string)?]>): [QuantumDelay, number] {
+    let consumed = 1;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected opening bracket [ after delay keyword",
+      );
+    }
+    consumed++;
+
+    const [duration, durationConsumed] = this.binaryExpression(
+      tokens.slice(consumed),
+    );
+    consumed += durationConsumed;
+    if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected closing bracket ] after delay designator",
+      );
+    }
+    consumed++;
+
+    const [qubits, qubitsConsumed] = this.parseQubitList(
+      tokens.slice(consumed),
+    );
+    consumed += qubitsConsumed;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      throwParserError(
+        MissingSemicolonError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected semicolon",
+      );
+    }
+    consumed++;
+
+    return [new QuantumDelay(duration, qubits), consumed];
+  }
+
+  /**
    * Parses a duration of function call.
    * @param tokens - Tokens to parse.
    * @return A DurationOf node and the number of tokens consumed.
@@ -2175,15 +2234,9 @@ class Parser {
     }
     consumed++;
 
-    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
-      throwParserError(
-        MissingSemicolonError,
-        tokens[consumed],
-        this.index + consumed,
-        "expected semicolon",
-      );
+    if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      consumed++;
     }
-    consumed++;
 
     return [new DurationOf(scope), consumed];
   }
@@ -2583,6 +2636,22 @@ class Parser {
     }
     const identifierName = tokens[0][1].toString();
     return this.customArrays.has(identifierName);
+  }
+
+  /** Checks whether an identifier represents a duration literal unit. */
+  private isDuration(tokens: Array<[Token, (number | string)?]>): boolean {
+    const checkToken = tokens[0];
+    if (checkToken.length !== 2 || checkToken[0] !== Token.Id) {
+      return false;
+    }
+    if (
+      Object.values(DurationUnit).includes(
+        checkToken[1].toString() as DurationUnit,
+      )
+    ) {
+      return true;
+    }
+    return false;
   }
 
   /** TODO : update this
