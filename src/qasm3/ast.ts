@@ -322,6 +322,15 @@ class DurationLiteral extends Expression {
   }
 }
 
+/** Class representing a durationof function call. */
+class DurationOf extends Expression {
+  scope: ProgramBlock;
+  constructor(scope: ProgramBlock) {
+    super();
+    this.scope = scope;
+  }
+}
+
 /** Enum representing Unary operands. */
 enum UnaryOp {
   LOGIC_NOT = "!",
@@ -940,6 +949,7 @@ export {
   BitstringLiteral,
   DurationUnit,
   DurationLiteral,
+  DurationOf,
   UnaryOp,
   Unary,
   ArithmeticOp,

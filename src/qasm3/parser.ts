@@ -52,6 +52,7 @@ import {
   BitstringLiteral,
   DurationUnit,
   DurationLiteral,
+  DurationOf,
   UnaryOp,
   Unary,
   BinaryOp,
@@ -370,6 +371,10 @@ class Parser {
         }
         return [[], consumed];
       }
+      case Token.DurationOf: {
+        const [durationOfNOde, consumed] = this.durationOf(tokens);
+        return [[durationOfNOde], consumed];
+      }
       case Token.If: {
         const [ifNode, ifConsumed] = this.ifStatement(tokens);
         return [[ifNode], ifConsumed];
@@ -513,8 +518,12 @@ class Parser {
       initialValue = value;
       consumed += valueConsumed;
     }
+    console.log(initialValue);
 
-    if (classicalType instanceof DurationType) {
+    if (
+      classicalType instanceof DurationType &&
+      !(initialValue instanceof DurationOf)
+    ) {
       if (
         this.matchNext(tokens.slice(consumed), [Token.Id]) &&
         Object.values(DurationUnit).includes(
@@ -536,14 +545,6 @@ class Parser {
       }
     }
 
-    // if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
-    //   throwParserError(
-    //     MissingSemicolonError,
-    //     tokens[consumed],
-    //     this.index + consumed,
-    //     "expected semicolon",
-    //   );
-    // }
     if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
       consumed++;
     }
@@ -654,6 +655,8 @@ class Parser {
         return [new Tau(), consumed];
       case Token.String:
         return [new BitstringLiteral(token[1].toString()), consumed];
+      case Token.DurationOf:
+        return this.durationOf(tokens);
       case Token.UnaryOp: {
         const [expr, exprConsumed] = this.unaryExpression(tokens.slice(1));
         return [new Unary(token[1] as UnaryOp, expr), consumed + exprConsumed];
@@ -2129,6 +2132,58 @@ class Parser {
     consumed += bodyConsumed;
 
     return [new DefaultStatement(body), consumed];
+  }
+
+  /**
+   * Parses a duration of function call.
+   * @param tokens - Tokens to parse.
+   * @return A DurationOf node and the number of tokens consumed.
+   */
+  durationOf(tokens: Array<[Token, (number | string)?]>): [DurationOf, number] {
+    let consumed = 1;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.LParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected opening parenthesis after durationof",
+      );
+    }
+    consumed++;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.LCParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected opening brace for durationof scope",
+      );
+    }
+    const [scope, scopeConsumed] = this.programBlock(tokens.slice(consumed));
+    consumed += scopeConsumed;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected closing parenthesis after durationof scope",
+      );
+    }
+    consumed++;
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      throwParserError(
+        MissingSemicolonError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected semicolon",
+      );
+    }
+    consumed++;
+
+    return [new DurationOf(scope), consumed];
   }
 
   /**

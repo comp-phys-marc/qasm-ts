@@ -181,6 +181,8 @@ enum Token {
   Dollar,
   // 90; array keyword
   Array,
+  // 91; durationof function keyword
+  DurationOf,
 }
 
 const lookupMap: object = {
@@ -276,6 +278,7 @@ const lookupMap: object = {
   complex: Token.Complex,
   "$": Token.Dollar,
   array: Token.Array,
+  durationof: Token.DurationOf,
 };
 
 /**
