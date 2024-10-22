@@ -1,3 +1,5 @@
+/* eslint-disable no-useless-escape */
+
 import { Token, lookup } from "./token";
 import {
   MissingSemicolonError,
@@ -356,19 +358,32 @@ class Lexer {
         } else if (this.peekEq("=")) {
           this.readChar();
           return [Token.CompoundArithmeticOp, "-="];
-        } else if (isNumeric(this.input[this.cursor])) {
-          const num = char + this.readNumeric();
-          if (num.indexOf("e") != -1) {
-            return [Token.ScientificNotation, num];
-          } else if (num.indexOf(".") != -1) {
-            return [Token.Real, parseFloat(num)];
-          } else if (num.indexOf("_") != -1) {
-            return [Token.Integer, num];
-          } else {
-            return [Token.Real, parseFloat(num)];
-          }
         } else {
-          return [Token.ArithmeticOp, "-"];
+          let prevPos = this.cursor - 2;
+          while (
+            prevPos >= 0 &&
+            " \t\n\r\v".indexOf(this.input[prevPos]) > -1
+          ) {
+            prevPos--;
+          }
+          const prevChar = prevPos >= 0 ? this.input[prevPos] : "";
+          if (prevChar.match(/[0-9\)\]\}]/) || isLetter(prevChar)) {
+            return [Token.ArithmeticOp, "-"];
+          }
+          if (isNumeric(this.input[this.cursor])) {
+            const num = char + this.readNumeric();
+            if (num.indexOf("e") != -1) {
+              return [Token.ScientificNotation, num];
+            } else if (num.indexOf(".") != -1) {
+              return [Token.Real, parseFloat(num)];
+            } else if (num.indexOf("_") != -1) {
+              return [Token.Integer, num];
+            } else {
+              return [Token.Real, parseFloat(num)];
+            }
+          } else {
+            return [Token.ArithmeticOp, "-"];
+          }
         }
       }
       case "&":
@@ -588,7 +603,7 @@ class Lexer {
             return [Token.Real, parseFloat(num)];
           } else if (num.indexOf("_") != -1) {
             return [Token.Integer, num];
-          }  else {
+          } else {
             return [Token.NNInteger, parseInt(num)];
           }
         } else {
