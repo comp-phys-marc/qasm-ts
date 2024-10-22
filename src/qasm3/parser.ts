@@ -597,6 +597,7 @@ class Parser {
       case Token.BinaryLiteral:
       case Token.OctalLiteral:
       case Token.HexLiteral:
+      case Token.ScientificNotation:
         return [new NumericLiteral(token[1].toString()), consumed];
       case Token.Real:
         if (this.isImaginary(tokens[consumed])) {

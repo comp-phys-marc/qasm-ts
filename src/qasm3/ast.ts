@@ -260,7 +260,7 @@ class IntegerLiteral extends Expression {
   }
 }
 
-/** Class representing a binary, octal, or hex literal. */
+/** Class representing a scientific notation, binary, octal, or hex literal. */
 class NumericLiteral extends Expression {
   value: string;
   constructor(value: string) {

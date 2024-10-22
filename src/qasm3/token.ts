@@ -187,6 +187,14 @@ enum Token {
   Stretch,
   // 93; box keyword
   Box,
+  // 94; readonly keyword
+  ReadOnly,
+  // 95; mutable keyword
+  Mutable,
+  // 96; #dim array dimensions
+  Dim,
+  // 97; scientific notation literal
+  ScientificNotation,
 }
 
 const lookupMap: object = {
@@ -286,6 +294,8 @@ const lookupMap: object = {
   durationof: Token.DurationOf,
   stretch: Token.Stretch,
   box: Token.Box,
+  readonly: Token.ReadOnly,
+  mutable: Token.Mutable,
 };
 
 /**

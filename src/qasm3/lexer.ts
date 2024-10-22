@@ -25,7 +25,7 @@ function throwLexerError(
  * @return Whether the character is numeric.
  */
 function isNumeric(c: string): boolean {
-  return c == "." || c == "_" || !isNaN(parseInt(c));
+  return c == "." || c == "e" || c == "_" || !isNaN(parseInt(c));
 }
 
 /**
@@ -123,6 +123,8 @@ class Lexer {
         !trimmedLine.startsWith("switch") &&
         !trimmedLine.startsWith("case") &&
         !trimmedLine.startsWith("box") &&
+        !trimmedLine.startsWith("array") &&
+        !trimmedLine.startsWith("{") &&
         !trimmedLine.startsWith("default")
       ) {
         return [false, i + 1, lines[i]];
@@ -207,8 +209,13 @@ class Lexer {
    */
   readNumeric = (): string => {
     let num = "";
-    while (isNumeric(this.peek())) {
+    let char = this.peek();
+    while (isNumeric(char) || char === "e") {
       num += this.readChar();
+      if (char === "e" && this.peek() === "-") {
+        num += this.readChar();
+      }
+      char = this.peek();
     }
     return num;
   };
@@ -351,7 +358,9 @@ class Lexer {
           return [Token.CompoundArithmeticOp, "-="];
         } else if (isNumeric(this.input[this.cursor])) {
           const num = char + this.readNumeric();
-          if (num.indexOf(".") != -1) {
+          if (num.indexOf("e") != -1) {
+            return [Token.ScientificNotation, num];
+          } else if (num.indexOf(".") != -1) {
             return [Token.Real, parseFloat(num)];
           } else if (num.indexOf("_") != -1) {
             return [Token.Integer, num];
@@ -429,6 +438,16 @@ class Lexer {
         return [Token.RCParen];
       case "$":
         return [Token.Dollar];
+      case "#":
+        if (
+          this.input[this.cursor] == "d" &&
+          this.input[this.cursor + 1] == "i" &&
+          this.input[this.cursor + 2] == "m"
+        ) {
+          this.readChar(3);
+          return [Token.Dim];
+        }
+        return this.readKeywordOrIdentifier(char);
       case "c":
         if (
           this.input[this.cursor] == "t" &&
@@ -563,11 +582,13 @@ class Lexer {
           return this.readKeywordOrIdentifier(char);
         } else if (isNumeric(char)) {
           const num = char + this.readNumeric();
-          if (num.indexOf(".") != -1) {
+          if (num.indexOf("e") != -1) {
+            return [Token.ScientificNotation, num];
+          } else if (num.indexOf(".") != -1) {
             return [Token.Real, parseFloat(num)];
           } else if (num.indexOf("_") != -1) {
             return [Token.Integer, num];
-          } else {
+          }  else {
             return [Token.NNInteger, parseInt(num)];
           }
         } else {
