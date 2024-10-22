@@ -334,6 +334,20 @@ class DurationOf extends Expression {
   }
 }
 
+/** Class representing a sizeof function call. */
+class SizeOf extends Expression {
+  array: Identifier;
+  dimensionIndex: Expression;
+  constructor(array: Identifier, dimensionIndex?: Expression | null) {
+    super();
+    this.array = array;
+    this.dimensionIndex =
+      dimensionIndex !== undefined && dimensionIndex !== null
+        ? dimensionIndex
+        : new IntegerLiteral(0);
+  }
+}
+
 /** Enum representing Unary operands. */
 enum UnaryOp {
   LOGIC_NOT = "!",
@@ -974,6 +988,7 @@ export {
   DurationUnit,
   DurationLiteral,
   DurationOf,
+  SizeOf,
   UnaryOp,
   Unary,
   ArithmeticOp,

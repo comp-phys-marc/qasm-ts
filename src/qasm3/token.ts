@@ -195,6 +195,8 @@ enum Token {
   Dim,
   // 97; scientific notation literal
   ScientificNotation,
+  // 98; sizeof function
+  SizeOf,
 }
 
 const lookupMap: object = {
@@ -296,6 +298,7 @@ const lookupMap: object = {
   box: Token.Box,
   readonly: Token.ReadOnly,
   mutable: Token.Mutable,
+  sizeof: Token.SizeOf,
 };
 
 /**

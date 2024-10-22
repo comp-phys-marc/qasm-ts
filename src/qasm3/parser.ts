@@ -97,6 +97,7 @@ import {
   ImaginaryLiteral,
   HardwareQubit,
   StretchType,
+  SizeOf,
 } from "./ast";
 
 /**
@@ -385,6 +386,10 @@ class Parser {
         const [durationOfNOde, consumed] = this.durationOf(tokens);
         return [[durationOfNOde], consumed];
       }
+      case Token.SizeOf: {
+        const [sizeOfNode, consumed] = this.sizeOf(tokens);
+        return [[sizeOfNode], consumed];
+      }
       case Token.Delay: {
         const [delayNode, delayConsumed] = this.delay(tokens);
         return [[delayNode], delayConsumed];
@@ -662,6 +667,8 @@ class Parser {
         return [new BitstringLiteral(token[1].toString()), consumed];
       case Token.DurationOf:
         return this.durationOf(tokens);
+      case Token.SizeOf:
+        return this.sizeOf(tokens);
       case Token.UnaryOp: {
         const [expr, exprConsumed] = this.unaryExpression(tokens.slice(1));
         return [new Unary(token[1] as UnaryOp, expr), consumed + exprConsumed];
@@ -2032,7 +2039,9 @@ class Parser {
   ): [ArrayInitializer | Expression, number] {
     let consumed = 0;
     if (!this.matchNext(tokens, [Token.LCParen])) {
-      const [expr, exprConsumed] = this.binaryExpression(tokens.slice(consumed));
+      const [expr, exprConsumed] = this.binaryExpression(
+        tokens.slice(consumed),
+      );
       consumed += exprConsumed;
       return [expr, consumed];
     }
@@ -2330,7 +2339,7 @@ class Parser {
   }
 
   /**
-   * Parses a duration of function call.
+   * Parses a durationof function call.
    * @param tokens - Tokens to parse.
    * @return A DurationOf node and the number of tokens consumed.
    */
@@ -2373,6 +2382,49 @@ class Parser {
     }
 
     return [new DurationOf(scope), consumed];
+  }
+
+  /**
+   * Parses a sizeof function call.
+   * @param tokens - Tokens to parse.
+   * @return A SizeOf node and the number of tokens consumed.
+   */
+  sizeOf(tokens: Array<[Token, (number | string)?]>): [SizeOf, number] {
+    let consumed = 1;
+    let dimensions: Expression | null = null;
+    if (!this.matchNext(tokens.slice(consumed), [Token.LParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected opening parenthesis for sizeof function call",
+      );
+    }
+    consumed++;
+
+    const [arrayId, arrayIdConsumed] = this.unaryExpression(
+      tokens.slice(consumed),
+    );
+    consumed += arrayIdConsumed;
+
+    if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
+      consumed++;
+      const [dim, dimConsumed] = this.binaryExpression(tokens.slice(consumed));
+      consumed += dimConsumed;
+      dimensions = dim;
+    }
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
+      throwParserError(
+        MissingBraceError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected closing parenthesis for sizeof function call",
+      );
+    }
+    consumed++;
+
+    return [new SizeOf(arrayId as Identifier, dimensions), consumed];
   }
 
   /**
