@@ -629,10 +629,14 @@ class QuantumGateCall extends QuantumInstruction {
  *  : `barrier` indexIdentifierList
  */
 class QuantumBarrier extends QuantumInstruction {
-  indexIdentifierList: Array<Identifier>;
-  constructor(indexIdentifierList: Array<Identifier>) {
+  qubits: Array<Identifier | SubscriptedIdentifier | HardwareQubit>;
+  constructor(
+    qubits: Array<
+      Identifier | SubscriptedIdentifier | HardwareQubit
+    >,
+  ) {
     super();
-    this.indexIdentifierList = indexIdentifierList;
+    this.qubits = qubits;
   }
 }
 
@@ -755,8 +759,8 @@ class SubroutineDefinition extends Statement {
   }
 }
 
-/** 
- * Class representing a box scoping statement. 
+/**
+ * Class representing a box scoping statement.
  *
  * boxStatement
  *   : BOX designator? scope;
@@ -767,7 +771,8 @@ class BoxDefinition extends Statement {
   constructor(scope: ProgramBlock, designator?: Expression) {
     super();
     this.scope = scope;
-    this.designator = designator !== undefined && designator !== null ? designator : null;
+    this.designator =
+      designator !== undefined && designator !== null ? designator : null;
   }
 }
 

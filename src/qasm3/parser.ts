@@ -407,6 +407,10 @@ class Parser {
         const [boxNode, boxConsumed] = this.box(tokens);
         return [[boxNode], boxConsumed];
       }
+      case Token.Barrier: {
+        const [barrierNode, barrierConsumed] = this.barrier(tokens);
+        return [[barrierNode], barrierConsumed];
+      }
       case Token.Id:
         if (this.isQuantumGateCall(tokens)) {
           const [gateCallNode, gateCallConsumed] = this.quantumGateCall(tokens);
@@ -1802,6 +1806,22 @@ class Parser {
     consumed += bodyConsumed;
 
     return [new WhileLoopStatement(condition, body), consumed];
+  }
+
+  /**
+   * Parses a barrier statement.
+   * @param tokens - Tokens to parse.
+   * @return An QuantumBarrier node and the number of tokens consumed.
+   */
+  barrier(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [QuantumBarrier, number] {
+    let consumed = 1;
+    const [qubits, qubitsConsumed] = this.parseQubitList(
+      tokens.slice(consumed),
+    );
+    consumed += qubitsConsumed;
+    return [new QuantumBarrier(qubits), consumed];
   }
 
   /**
