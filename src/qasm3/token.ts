@@ -185,6 +185,8 @@ enum Token {
   DurationOf,
   // 92; stretch type keyword
   Stretch,
+  // 93; box keyword
+  Box,
 }
 
 const lookupMap: object = {
@@ -282,6 +284,7 @@ const lookupMap: object = {
   array: Token.Array,
   durationof: Token.DurationOf,
   stretch: Token.Stretch,
+  box: Token.Box,
 };
 
 /**

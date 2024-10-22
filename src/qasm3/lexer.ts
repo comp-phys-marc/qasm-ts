@@ -122,6 +122,7 @@ class Lexer {
         !trimmedLine.startsWith("while") &&
         !trimmedLine.startsWith("switch") &&
         !trimmedLine.startsWith("case") &&
+        !trimmedLine.startsWith("box") &&
         !trimmedLine.startsWith("default")
       ) {
         return [false, i + 1, lines[i]];

@@ -79,6 +79,7 @@ import {
   QuantumBlock,
   SubroutineBlock,
   QuantumGateDefinition,
+  BoxDefinition,
   SubroutineDefinition,
   SubroutineCall,
   BranchingStatement,
@@ -401,6 +402,10 @@ class Parser {
         const [arrayNode, arrayConsumed] = this.arrayDeclaration(tokens);
         this.customArrays.add(arrayNode.identifier.name);
         return [[arrayNode], arrayConsumed];
+      }
+      case Token.Box: {
+        const [boxNode, boxConsumed] = this.box(tokens);
+        return [[boxNode], boxConsumed];
       }
       case Token.Id:
         if (this.isQuantumGateCall(tokens)) {
@@ -1797,6 +1802,39 @@ class Parser {
     consumed += bodyConsumed;
 
     return [new WhileLoopStatement(condition, body), consumed];
+  }
+
+  /**
+   * Parses a box statement.
+   * @param tokens - Tokens to parse.
+   * @return An BoxDefinition node and the number of tokens consumed.
+   */
+  box(tokens: Array<[Token, (number | string)?]>): [BoxDefinition, number] {
+    let consumed = 1;
+    let designator: Expression | null = null;
+
+    if (this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
+      consumed++;
+      const [desginatorNode, designatorConsumed] = this.binaryExpression(
+        tokens.slice(consumed),
+      );
+      consumed += designatorConsumed;
+      designator = desginatorNode;
+      if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
+        throwParserError(
+          MissingBraceError,
+          tokens[consumed],
+          this.index + consumed,
+          "expected closing ] bracket following box designator",
+        );
+      }
+      consumed++;
+    }
+
+    const [scope, scopeConsumed] = this.programBlock(tokens.slice(consumed));
+    consumed += scopeConsumed;
+
+    return [new BoxDefinition(scope, designator), consumed];
   }
 
   /**

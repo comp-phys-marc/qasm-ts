@@ -755,6 +755,22 @@ class SubroutineDefinition extends Statement {
   }
 }
 
+/** 
+ * Class representing a box scoping statement. 
+ *
+ * boxStatement
+ *   : BOX designator? scope;
+ */
+class BoxDefinition extends Statement {
+  designator: Expression | null;
+  scope: ProgramBlock;
+  constructor(scope: ProgramBlock, designator?: Expression) {
+    super();
+    this.scope = scope;
+    this.designator = designator !== undefined && designator !== null ? designator : null;
+  }
+}
+
 /** Class representing a subroutine call. */
 class SubroutineCall extends Statement {
   subroutineName: Identifier;
@@ -983,6 +999,7 @@ export {
   QuantumBlock,
   SubroutineBlock,
   QuantumGateDefinition,
+  BoxDefinition,
   SubroutineDefinition,
   SubroutineCall,
   BranchingStatement,
