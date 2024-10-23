@@ -12,7 +12,7 @@ Language documentation is provided by IBM [here](https://github.com/Qiskit/openq
 
 Import the parse function or parseString function from the package.
 
-```
+```ts
 import { parseFile, parseString } from 'qasm-ts';
 ```
 
