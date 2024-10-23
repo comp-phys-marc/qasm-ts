@@ -81,6 +81,7 @@ import {
   SubroutineBlock,
   QuantumGateDefinition,
   BoxDefinition,
+  ExternSignature,
   SubroutineDefinition,
   SubroutineCall,
   BranchingStatement,
@@ -353,6 +354,11 @@ class Parser {
         this.subroutines.add(subroutineNode.name.name);
         return [[subroutineNode], subroutineConsumed];
       }
+      case Token.Extern: {
+        const [externNode, consumed] = this.externSignature(tokens);
+        this.subroutines.add(externNode.name.name);
+        return [[externNode], consumed];
+      }
       case Token.Ctrl:
       case Token.NegCtrl:
       case Token.Inv:
@@ -532,35 +538,39 @@ class Parser {
     isConst?: boolean,
   ): [ClassicalDeclaration, number] {
     const isConstParam = isConst ? isConst : false;
+    let id: Identifier | null = null;
+    let initialValue: Expression | undefined;
     let consumed = 0;
 
     const [classicalType, classicalTypeConsumed] =
       this.parseClassicalType(tokens);
     consumed += classicalTypeConsumed;
 
-    const [identifier, idConsumed] = this.unaryExpression(
-      tokens.slice(consumed),
-    );
-    let initialValue: Expression | undefined;
-    consumed += idConsumed;
-
-    if (this.matchNext(tokens.slice(consumed), [Token.EqualsAssmt])) {
-      consumed++;
-      const [value, valueConsumed] = this.binaryExpression(
+    if (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
+      const [identifier, idConsumed] = this.unaryExpression(
         tokens.slice(consumed),
       );
-      initialValue = value;
-      consumed += valueConsumed;
-    }
+      id = identifier as Identifier;
+      consumed += idConsumed;
 
-    if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
-      consumed++;
-    }
+      if (this.matchNext(tokens.slice(consumed), [Token.EqualsAssmt])) {
+        consumed++;
+        const [value, valueConsumed] = this.binaryExpression(
+          tokens.slice(consumed),
+        );
+        initialValue = value;
+        consumed += valueConsumed;
+      }
+
+      if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+        consumed++;
+      }
+    } 
 
     return [
       new ClassicalDeclaration(
         classicalType,
-        identifier as Identifier,
+        id,
         initialValue,
         isConstParam,
       ),
@@ -1100,6 +1110,63 @@ class Parser {
     }
 
     return [new ReturnStatement(expression), consumed];
+  }
+
+  /**
+   * Parses an extern signature.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the ExternSignature and the number of tokens consumed.
+   */
+  externSignature(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [ExternSignature, number] {
+    let consumed = 1;
+    if (!this.matchNext(tokens.slice(consumed), [Token.Id])) {
+      throwParserError(
+        BadSubroutineError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected identifier following extern keyword",
+      );
+    }
+    const [identifier, identifierConsumed] = this.unaryExpression(
+      tokens.slice(consumed),
+    );
+    consumed += identifierConsumed;
+
+    let externParams: Parameters = null;
+    if (this.matchNext(tokens.slice(consumed), [Token.LParen])) {
+      const [params, paramsConsumed] = this.parseParameters(
+        tokens.slice(consumed),
+      );
+      externParams = params;
+      consumed += paramsConsumed;
+    }
+
+    let returnType: ClassicalType = null;
+    if (this.matchNext(tokens.slice(consumed), [Token.Arrow])) {
+      consumed++;
+      const [type, typeConsumed] = this.parseClassicalType(
+        tokens.slice(consumed),
+      );
+      returnType = type;
+      consumed += typeConsumed;
+    }
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      throwParserError(
+        MissingSemicolonError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected semicolon",
+      );
+    }
+    consumed++;
+
+    return [
+      new ExternSignature(identifier as Identifier, externParams, returnType),
+      consumed,
+    ];
   }
 
   /**

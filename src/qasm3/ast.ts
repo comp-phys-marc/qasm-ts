@@ -539,20 +539,20 @@ class QuantumMeasurementAssignment extends Statement {
 /** Class representing the declaration of a classical type, optionally initializing it to a value. */
 class ClassicalDeclaration extends Statement {
   classicalType: ClassicalType;
-  identifier: Identifier;
+  identifier: Identifier | null;
   initializer: any | null;
   isConst: boolean;
   constructor(
     classicalType: ClassicalType,
-    identifier: Identifier,
+    identifier?: Identifier,
     initializer?: any,
     isConst?: boolean,
   ) {
     super();
     this.classicalType = classicalType;
-    this.identifier = identifier;
-    this.initializer = initializer ? initializer : null;
-    this.isConst = isConst ? isConst : false;
+    this.identifier = identifier !== undefined && identifier !== null ? identifier : null;
+    this.initializer = initializer !== undefined && initializer !== null ? initializer : null;
+    this.isConst = isConst !== undefined && isConst !== null ? isConst : false;
   }
 }
 
@@ -765,6 +765,29 @@ class QuantumGateDefinition extends Statement {
 }
 
 /**
+ * Class representing an extern function signature.
+ *
+ * externStatement
+ *   : EXTERN Identifier LPAREN externArgumentList? RPAREN returnSignature? SEMICOLON;
+ */
+class ExternSignature extends Statement {
+  name: Identifier;
+  args: Parameters | null;
+  returnType: ClassicalType | null;
+  constructor(
+    name: Identifier,
+    args: Parameters | null,
+    returnType?: ClassicalType,
+  ) {
+    super();
+    this.name = name;
+    this.args = args;
+    this.returnType =
+      returnType !== undefined && returnType !== null ? returnType : null;
+  }
+}
+
+/**
  * Class representing a subroutine.
  *
  * subroutineDefinition
@@ -924,10 +947,7 @@ enum IOModifier {
 class IODeclaration extends Statement {
   modifier: IOModifier;
   classicalType: ClassicalDeclaration;
-  constructor(
-    modifier: IOModifier,
-    classicalType: ClassicalDeclaration,
-  ) {
+  constructor(modifier: IOModifier, classicalType: ClassicalDeclaration) {
     super();
     this.modifier = modifier;
     this.classicalType = classicalType;
@@ -1040,6 +1060,7 @@ export {
   SubroutineBlock,
   QuantumGateDefinition,
   BoxDefinition,
+  ExternSignature,
   SubroutineDefinition,
   SubroutineCall,
   BranchingStatement,

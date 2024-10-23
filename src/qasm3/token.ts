@@ -197,6 +197,8 @@ enum Token {
   ScientificNotation,
   // 98; sizeof function
   SizeOf,
+  // 99; extern keyword
+  Extern,
 }
 
 const lookupMap: object = {
@@ -298,6 +300,7 @@ const lookupMap: object = {
   readonly: Token.ReadOnly,
   mutable: Token.Mutable,
   sizeof: Token.SizeOf,
+  extern: Token.Extern,
 };
 
 /**
