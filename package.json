@@ -25,12 +25,13 @@
   "homepage": "https://github.com/comp-phys-marc/qasm-ts#readme",
   "dependencies": {
     "path": "^0.12.7",
-    "ts-node": "^8.3.0",
-    "typescript": "^3.5.3"
+    "ts-node": "^8.3.0"
   },
   "devDependencies": {
     "@types/jasmine": "^3.4.0",
     "@types/node": "^12.7.2",
-    "jasmine": "^3.4.0"
+    "eslint": "^8.57.0",
+    "jasmine": "^3.4.0",
+    "typescript": "^5.5.4"
   }
 }
