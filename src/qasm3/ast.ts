@@ -453,10 +453,7 @@ enum ArrayReferenceModifier {
 class ArrayReference extends Expression {
   array: ArrayDeclaration;
   modifier: ArrayReferenceModifier;
-  constructor(
-    array: ArrayDeclaration,
-    modifier: ArrayReferenceModifier,
-  ) {
+  constructor(array: ArrayDeclaration, modifier: ArrayReferenceModifier) {
     super();
     this.array = array;
     this.modifier = modifier;
@@ -496,11 +493,11 @@ class ArrayInitializer extends Expression {
 /** Class representing an array access */
 class ArrayAccess extends Expression {
   array: Identifier;
-  indices: Array<Expression>;
-  constructor(array: Identifier, indices?: Array<Expression>) {
+  indices: Array<Expression> | Range | null;
+  constructor(array: Identifier, indices?: Array<Expression> | Range) {
     super();
     this.array = array;
-    this.indices = indices;
+    this.indices = indices !== undefined && indices !== null ? indices : null;
   }
 }
 

@@ -1553,7 +1553,9 @@ class Parser {
     }
     consumed++;
 
-    const [arrayNode, arrayConsumed] = this.arrayDeclaration(tokens.slice(consumed));
+    const [arrayNode, arrayConsumed] = this.arrayDeclaration(
+      tokens.slice(consumed),
+    );
     consumed += arrayConsumed;
 
     return [new ArrayReference(arrayNode, modifier), consumed];
@@ -2174,18 +2176,39 @@ class Parser {
     const identifier = new Identifier(tokens[0][1].toString());
     consumed++;
 
-    const indices: Array<Expression> = [];
+    let indices: Array<Expression> | Range = [];
     if (this.matchNext(tokens.slice(consumed), [Token.LSParen])) {
       consumed++;
       while (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
-        const [index, indexConsumed] = this.binaryExpression(
+        const [index1, index1Consumed] = this.binaryExpression(
           tokens.slice(consumed),
         );
-        indices.push(index);
-        consumed += indexConsumed;
+        indices.push(index1);
+        consumed += index1Consumed;
 
         if (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
           consumed++;
+        } else if (this.matchNext(tokens.slice(consumed), [Token.Colon])) {
+          consumed++;
+          let step: Expression = new IntegerLiteral(1);
+          let stop: Expression;
+          const [index2, index2Consumed] = this.binaryExpression(
+            tokens.slice(consumed),
+          );
+          consumed += index2Consumed;
+          if (this.matchNext(tokens.slice(consumed), [Token.Colon])) {
+            consumed++;
+            const [index3, index3Consumed] = this.binaryExpression(
+              tokens.slice(consumed),
+            );
+            consumed += index3Consumed;
+            stop = index3;
+            step = index2;
+          } else {
+            stop = index2;
+          }
+          indices = new Range(index1, stop, step);
+          break;
         } else if (!this.matchNext(tokens.slice(consumed), [Token.RSParen])) {
           throwParserError(
             BadExpressionError,
