@@ -915,20 +915,21 @@ class ContinueStatement extends Statement {}
 
 /** Enum representing the available IO modifiers. */
 enum IOModifier {
-  INPUT,
-  OUTPUT,
+  INPUT = "input",
+  OUTPUT = "output",
 }
 
 /** Class representing a declaration of an IO variable. */
-class IODeclaration extends ClassicalDeclaration {
+class IODeclaration extends Statement {
   modifier: IOModifier;
+  classicalType: ClassicalDeclaration;
   constructor(
     modifier: IOModifier,
-    classicalType: ClassicalType,
-    identifier: Identifier,
+    classicalType: ClassicalDeclaration,
   ) {
-    super(classicalType, identifier);
+    super();
     this.modifier = modifier;
+    this.classicalType = classicalType;
   }
 }
 

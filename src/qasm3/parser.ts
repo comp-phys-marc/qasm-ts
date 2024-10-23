@@ -1,6 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
-import { Token, notParam } from "./token";
+import { Token } from "./token";
 import { OpenQASMVersion } from "../version";
 import {
   BadQregError,
@@ -287,6 +287,11 @@ class Parser {
         );
         return [[constNode], consumed + 1];
       }
+      case Token.Input:
+      case Token.Output: {
+        const [ioType, consumed] = this.ioType(tokens);
+        return [[ioType], consumed];
+      }
       case Token.Float:
       case Token.Int:
       case Token.UInt:
@@ -561,6 +566,35 @@ class Parser {
       ),
       consumed,
     ];
+  }
+
+  /**
+   * Parses an IO declaration statement.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the parsed IODeclaration and the number of tokens consumed.
+   */
+  ioType(tokens: Array<[Token, (number | string)?]>): [IODeclaration, number] {
+    let consumed = 0;
+    let modifier: IOModifier;
+    switch (tokens[consumed][0]) {
+      case Token.Input:
+        modifier = IOModifier.INPUT;
+        break;
+      case Token.Output:
+        modifier = IOModifier.OUTPUT;
+        break;
+      default:
+        throwParserError(
+          BadExpressionError,
+          tokens[consumed],
+          this.index + consumed,
+          "unsupported IO modifier",
+        );
+    }
+    consumed++;
+    const [classicalDeclaration, typeConsumed] = this.classicalDeclaration(tokens.slice(consumed));
+    consumed += typeConsumed;
+    return [new IODeclaration(modifier, classicalDeclaration), consumed];
   }
 
   /**
