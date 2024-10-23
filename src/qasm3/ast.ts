@@ -443,15 +443,35 @@ class IndexSet extends Expression {
   }
 }
 
+/** Enum representing the supported array reference modifiers. */
+enum ArrayReferenceModifier {
+  READONLY = "readonly",
+  MUTABLE = "mutable",
+}
+
+/** Class representing an array reference. */
+class ArrayReference extends Expression {
+  array: ArrayDeclaration;
+  modifier: ArrayReferenceModifier;
+  constructor(
+    array: ArrayDeclaration,
+    modifier: ArrayReferenceModifier,
+  ) {
+    super();
+    this.array = array;
+    this.modifier = modifier;
+  }
+}
+
 /** Class representing a statically sized array. */
 class ArrayDeclaration extends Statement {
   baseType: ClassicalType;
-  dimensions: Array<Expression>;
+  dimensions: Array<Expression> | number;
   identifier: Identifier;
   initializer: ArrayInitializer | Expression | null;
   constructor(
     baseType: ClassicalType,
-    dimensions: Array<Expression>,
+    dimensions: Array<Expression> | number,
     identifier: Identifier,
     initializer?: ArrayInitializer | Expression | null,
   ) {
@@ -957,6 +977,8 @@ export {
   Statement,
   Expression,
   Parameters,
+  ArrayReferenceModifier,
+  ArrayReference,
   CalibrationGrammarDeclaration,
   Include,
   Version,
