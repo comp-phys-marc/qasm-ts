@@ -1,3 +1,5 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
 import * as fs from "fs";
 import { OpenQASMVersion, OpenQASMMajorVersion } from "./version";
 import { lex } from "./lexer";
@@ -11,10 +13,18 @@ import { parse } from "./parser";
 export function parseString(
   qasm: string,
   version?: number | OpenQASMVersion | OpenQASMMajorVersion,
+  verbose?: boolean,
+  stringify?: boolean,
 ) {
+  let ast: any;
   const tokens = lex(qasm, undefined, version);
-  console.log(tokens);
-  const ast = parse(tokens, version);
+  ast = parse(tokens, version);
+  if (verbose === true) {
+    if (stringify === true) {
+      ast = JSON.stringify(getDetailedOutput(ast), null, 2);
+    }
+    ast = getDetailedOutput(ast);
+  }
   return ast;
 }
 
@@ -26,6 +36,29 @@ export function parseString(
 export function parseFile(
   file: string,
   version?: number | OpenQASMVersion | OpenQASMMajorVersion,
+  verbose?: boolean,
+  stringify?: boolean,
 ) {
-  return parseString(fs.readFileSync(file, "utf8"), version);
+  return parseString(
+    fs.readFileSync(file, "utf8"),
+    version,
+    verbose,
+    stringify,
+  );
+}
+
+/** Adds class names to the ast. */
+function getDetailedOutput(object) {
+  if (Array.isArray(object)) {
+    return object.map(getDetailedOutput);
+  } else if (object !== null && typeof object === "object") {
+    const result = {};
+    result["__className__"] = object.constructor.name;
+    for (const [key, value] of Object.entries(object)) {
+      result[key] = getDetailedOutput(value);
+    }
+    return result;
+  } else {
+    return object;
+  }
 }
