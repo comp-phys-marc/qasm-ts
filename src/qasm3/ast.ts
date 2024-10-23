@@ -352,6 +352,7 @@ class SizeOf extends Expression {
 enum UnaryOp {
   LOGIC_NOT = "!",
   BIT_NOT = "~",
+  MINUS = "-",
 }
 
 /** Class representing a unary operator. */

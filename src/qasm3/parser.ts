@@ -592,7 +592,9 @@ class Parser {
         );
     }
     consumed++;
-    const [classicalDeclaration, typeConsumed] = this.classicalDeclaration(tokens.slice(consumed));
+    const [classicalDeclaration, typeConsumed] = this.classicalDeclaration(
+      tokens.slice(consumed),
+    );
     consumed += typeConsumed;
     return [new IODeclaration(modifier, classicalDeclaration), consumed];
   }
@@ -739,13 +741,20 @@ class Parser {
 
     while (consumed < tokens.length) {
       const token = tokens[consumed];
-      if (token[0] === Token.BinaryOp || token[0] === Token.ArithmeticOp) {
+      if (
+        token[0] === Token.BinaryOp ||
+        token[0] === Token.ArithmeticOp ||
+        (token[0] === Token.UnaryOp && token[1] === "-")
+      ) {
         consumed++;
         const [rightExpr, rightConsumed] = this.unaryExpression(
           tokens.slice(consumed),
         );
+
         if (token[0] === Token.BinaryOp) {
           leftExpr = new Binary(token[1] as BinaryOp, leftExpr, rightExpr);
+        } else if (token[0] === Token.UnaryOp && token[1] === "-") {
+          leftExpr = new Arithmetic(ArithmeticOp.MINUS, leftExpr, rightExpr);
         } else {
           leftExpr = new Arithmetic(
             token[1] as ArithmeticOp,
