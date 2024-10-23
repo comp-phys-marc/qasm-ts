@@ -23,6 +23,8 @@ import {
   Statement,
   Expression,
   Parameters,
+  ArrayReferenceModifier,
+  ArrayReference,
   CalibrationGrammarDeclaration,
   Include,
   Version,
@@ -1484,6 +1486,21 @@ class Parser {
           );
           args.push(bitParam);
           consumed += bitConsumed;
+        } else if (isTypeToken(tokens[consumed][0])) {
+          const [param, paramConsumed] = this.classicalDeclaration(
+            tokens.slice(consumed),
+          );
+          args.push(param);
+          consumed += paramConsumed;
+        } else if (
+          this.matchNext(tokens.slice(consumed), [Token.ReadOnly]) ||
+          this.matchNext(tokens.slice(consumed), [Token.Mutable])
+        ) {
+          const [arrayRef, arrayRefConsumed] = this.parseArrayReference(
+            tokens.slice(consumed),
+          );
+          args.push(arrayRef);
+          consumed += arrayRefConsumed;
         } else {
           const [param, paramConsumed] = this.binaryExpression(
             tokens.slice(consumed),
@@ -1507,6 +1524,39 @@ class Parser {
     }
 
     return [new Parameters(args), consumed];
+  }
+
+  /**
+   * Parses an array reference.
+   * @param tokens - Remaining tokens to parse.
+   * @return A tuple containing the ArrayReference and the number of tokens consumed.
+   */
+  parseArrayReference(
+    tokens: Array<[Token, (number | string)?]>,
+  ): [ArrayReference, number] {
+    let consumed = 0;
+    let modifier: ArrayReferenceModifier;
+    switch (tokens[consumed][0]) {
+      case Token.Mutable:
+        modifier = ArrayReferenceModifier.MUTABLE;
+        break;
+      case Token.ReadOnly:
+        modifier = ArrayReferenceModifier.READONLY;
+        break;
+      default:
+        throwParserError(
+          BadExpressionError,
+          tokens[consumed],
+          this.index + consumed,
+          "unsupported array reference modifier",
+        );
+    }
+    consumed++;
+
+    const [arrayNode, arrayConsumed] = this.arrayDeclaration(tokens.slice(consumed));
+    consumed += arrayConsumed;
+
+    return [new ArrayReference(arrayNode, modifier), consumed];
   }
 
   /**
@@ -1986,9 +2036,21 @@ class Parser {
     );
     consumed += baseTypeConsumed;
 
-    const dimensions: Array<Expression> = [];
+    let dimensions: Array<Expression> | number = [];
     while (this.matchNext(tokens.slice(consumed), [Token.Comma])) {
       consumed++;
+      if (
+        this.matchNext(tokens.slice(consumed), [
+          Token.Dim,
+          Token.EqualsAssmt,
+          Token.NNInteger,
+        ])
+      ) {
+        consumed += 2;
+        dimensions = Number(tokens[consumed][1]);
+        consumed++;
+        break;
+      }
       const [dimension, dimensionConsumed] = this.binaryExpression(
         tokens.slice(consumed),
       );
@@ -2027,15 +2089,9 @@ class Parser {
       consumed += initializerConsumed;
     }
 
-    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
-      throwParserError(
-        BadExpressionError,
-        tokens[consumed],
-        this.index + consumed,
-        "expected semicolon after array declaration",
-      );
+    if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      consumed++;
     }
-    consumed++;
 
     return [
       new ArrayDeclaration(
@@ -2879,7 +2935,9 @@ function isTypeToken(token: Token): boolean {
     token === Token.Int ||
     token === Token.UInt ||
     token === Token.Bool ||
-    token === Token.Duration
+    token === Token.Duration ||
+    token === Token.Angle ||
+    token === Token.Stretch
   );
 }
 
