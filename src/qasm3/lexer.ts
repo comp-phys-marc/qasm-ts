@@ -358,7 +358,7 @@ class Lexer {
         } else if (this.peekEq("=")) {
           this.readChar();
           return [Token.CompoundArithmeticOp, "-="];
-        } 
+        }
         return [Token.UnaryOp, "-"];
       }
       case "&":
@@ -385,6 +385,12 @@ class Lexer {
         if (this.peekEq("=")) {
           this.readChar();
           return [Token.BinaryOp, "<="];
+        } else if (
+          this.input[this.cursor] == "<" &&
+          this.input[this.cursor + 1] == "="
+        ) {
+          this.readChar(2);
+          return [Token.CompoundArithmeticOp, "<<="];
         } else if (this.peekEq("<")) {
           this.readChar();
           return [Token.BinaryOp, "<<"];
@@ -395,6 +401,12 @@ class Lexer {
         if (this.peekEq("=")) {
           this.readChar();
           return [Token.BinaryOp, ">="];
+        } else if (
+          this.input[this.cursor] == ">" &&
+          this.input[this.cursor + 1] == "="
+        ) {
+          this.readChar(2);
+          return [Token.CompoundArithmeticOp, ">>="];
         } else if (this.peekEq(">")) {
           this.readChar();
           return [Token.BinaryOp, ">>"];
