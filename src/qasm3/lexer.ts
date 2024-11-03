@@ -473,7 +473,8 @@ class Lexer {
       case "p":
         if (
           this.input[this.cursor] == "o" &&
-          this.input[this.cursor + 1] == "w"
+          this.input[this.cursor + 1] == "w" &&
+          !isLetter(this.input[this.cursor + 2])
         ) {
           this.readChar(2);
           return this.lexGateModifier("pow");
