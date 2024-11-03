@@ -1541,16 +1541,6 @@ class Parser {
         );
     }
 
-    if (!this.matchNext(tokens.slice(consumed), [Token.At])) {
-      throwParserError(
-        BadGateError,
-        tokens[consumed],
-        this.index + consumed,
-        "expected `@` symbol after gate modifier",
-      );
-    }
-    consumed++;
-
     if (this.matchNext(tokens.slice(consumed), [Token.LParen])) {
       consumed++;
       const [arg, argConsumed] = this.binaryExpression(tokens.slice(consumed));
@@ -1567,6 +1557,17 @@ class Parser {
       }
       consumed++;
     }
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.At])) {
+      throwParserError(
+        BadGateError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected `@` symbol after gate modifier",
+      );
+    }
+    consumed++;
+
     return [new QuantumGateModifier(modifier, argument), consumed];
   }
 
