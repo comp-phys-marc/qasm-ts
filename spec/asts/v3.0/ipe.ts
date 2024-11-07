@@ -1,0 +1,117 @@
+import {
+  Include,
+  FloatType,
+  IntType,
+  UIntType,
+  AngleType,
+  Range,
+  Identifier,
+  SubscriptedIdentifier,
+  Pi,
+  ArithmeticOp,
+  Arithmetic,
+  BinaryOp,
+  Binary,
+  QuantumMeasurement,
+  QuantumMeasurementAssignment,
+  ClassicalDeclaration,
+  AssignmentStatement,
+  QuantumDeclaration,
+  QuantumGateModifier,
+  QuantumGateCall,
+  QuantumReset,
+  ProgramBlock,
+  ForLoopStatement,
+  IntegerLiteral,
+  Parameters,
+} from "../../../src/qasm3/ast";
+
+export const ipeAst = [
+  new Include('"stdgates.inc"'),
+  new ClassicalDeclaration(
+    new IntType(new IntegerLiteral(32)),
+    new Identifier("n"),
+    new IntegerLiteral(10),
+    true,
+  ),
+  new ClassicalDeclaration(
+    new FloatType(new IntegerLiteral(32)),
+    new Identifier("theta"),
+    new Arithmetic(
+      ArithmeticOp.DIVISION,
+      new Arithmetic(ArithmeticOp.TIMES, new IntegerLiteral(3), new Pi()),
+      new IntegerLiteral(8),
+    ),
+    true,
+  ),
+  new QuantumDeclaration(new Identifier("q"), null),
+  new QuantumDeclaration(new Identifier("r"), null),
+  new ClassicalDeclaration(
+    new AngleType(new Identifier("n")),
+    new Identifier("c"),
+    null,
+    false,
+  ),
+  new QuantumReset(new Identifier("q")),
+  new QuantumReset(new Identifier("r")),
+  new QuantumGateCall(new Identifier("h"), [new Identifier("r")], null, []),
+  new ClassicalDeclaration(
+    new UIntType(new Identifier("n")),
+    new Identifier("power"),
+    new IntegerLiteral(1),
+    false,
+  ),
+  new ForLoopStatement(
+    new Range(
+      new IntegerLiteral(0),
+      new Arithmetic(
+        ArithmeticOp.MINUS,
+        new Identifier("n"),
+        new IntegerLiteral(1),
+      ),
+      new IntegerLiteral(1),
+    ),
+    new UIntType(32),
+    new Identifier("i"),
+    new ProgramBlock([
+      new QuantumReset(new Identifier("q")),
+      new QuantumGateCall(new Identifier("h"), [new Identifier("q")], null, []),
+      new QuantumGateCall(
+        new Identifier("phase"),
+        [new Identifier("q"), new Identifier("r")],
+        new Parameters([new Identifier("theta")]),
+        [
+          new QuantumGateModifier(0, null),
+          new QuantumGateModifier(3, new Identifier("power")),
+        ],
+      ),
+      new QuantumGateCall(
+        new Identifier("phase"),
+        [new Identifier("q")],
+        new Parameters([new Identifier("c")]),
+        [new QuantumGateModifier(2, null)],
+      ),
+      new QuantumGateCall(new Identifier("h"), [new Identifier("q")], null, []),
+      new QuantumMeasurementAssignment(
+        new SubscriptedIdentifier("c", new IntegerLiteral(0)),
+        new QuantumMeasurement([new Identifier("q")]),
+      ),
+      new AssignmentStatement(
+        new Identifier("c"),
+        new Binary(
+          BinaryOp.SHIFT_LEFT,
+          new Identifier("c"),
+          new IntegerLiteral(1),
+        ),
+      ),
+      new AssignmentStatement(
+        new Identifier("power"),
+        new Binary(
+          BinaryOp.SHIFT_LEFT,
+          new Identifier("power"),
+          new IntegerLiteral(1),
+        ),
+      ),
+    ]),
+  ),
+];
