@@ -1434,7 +1434,6 @@ class Parser {
     }
 
     // Parse qubit arguments
-    console.log(tokens);
     const [qubits, qubitsConsumed] = this.parseQubitList(
       tokens.slice(consumed),
     );
