@@ -457,6 +457,7 @@ class Parser {
         } else if (
           this.matchNext(tokens.slice(1), [Token.EqualsAssmt]) ||
           this.matchNext(tokens.slice(1), [Token.CompoundArithmeticOp]) ||
+          this.matchNext(tokens.slice(1), [Token.CompoundBinaryOp]) ||
           this.isAssignment(tokens)
         ) {
           const [assignmentNode, consumed] = this.assignment(tokens);
@@ -824,7 +825,11 @@ class Parser {
     consumed += lhsConsumed;
 
     // Handle compound assignments
-    if (tokens[consumed][0] === Token.CompoundArithmeticOp) {
+    const operatorToken = tokens[consumed][0];
+    if (
+      operatorToken === Token.CompoundArithmeticOp ||
+      operatorToken === Token.CompoundBinaryOp
+    ) {
       consumed++;
       const operator = tokens[lhsConsumed][1].toString();
       const [rhs, rhsConsumed] = this.binaryExpression(tokens.slice(consumed));
@@ -840,12 +845,29 @@ class Parser {
       }
       consumed++;
 
-      const arithmeticOp = operator.slice(0, -1) as ArithmeticOp;
-      const arithmeticExpression = new Arithmetic(arithmeticOp, lhs, rhs);
+      let op: ArithmeticOp | BinaryOp;
+      let expression: Arithmetic | Binary;
+      switch (operatorToken) {
+        case Token.CompoundArithmeticOp:
+          op = operator.slice(0, -1) as ArithmeticOp;
+          expression = new Arithmetic(op, lhs, rhs);
+          break;
+        case Token.CompoundBinaryOp:
+          op = operator.slice(0, -1) as BinaryOp;
+          expression = new Binary(op, lhs, rhs);
+          break;
+        default:
+          throwParserError(
+            BadExpressionError,
+            tokens[consumed],
+            this.index + consumed,
+            "invalid compound operator",
+          );
+      }
       return [
         new AssignmentStatement(
           lhs as SubscriptedIdentifier | Identifier,
-          arithmeticExpression,
+          expression,
         ),
         consumed,
       ];
