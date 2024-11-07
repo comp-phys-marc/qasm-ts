@@ -199,6 +199,8 @@ enum Token {
   SizeOf,
   // 99; extern keyword
   Extern,
+  // 100; compound binary operators
+  CompoundBinaryOp,
 }
 
 const lookupMap: object = {

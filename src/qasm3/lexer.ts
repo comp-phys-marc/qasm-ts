@@ -378,7 +378,7 @@ class Lexer {
       case "^":
         if (this.peekEq("=")) {
           this.readChar();
-          return [Token.CompoundArithmeticOp, "^="];
+          return [Token.CompoundBinaryOp, "^="];
         }
         return [Token.BinaryOp, "^"];
       case "<":
@@ -390,7 +390,7 @@ class Lexer {
           this.input[this.cursor + 1] == "="
         ) {
           this.readChar(2);
-          return [Token.CompoundArithmeticOp, "<<="];
+          return [Token.CompoundBinaryOp, "<<="];
         } else if (this.peekEq("<")) {
           this.readChar();
           return [Token.BinaryOp, "<<"];
@@ -406,7 +406,7 @@ class Lexer {
           this.input[this.cursor + 1] == "="
         ) {
           this.readChar(2);
-          return [Token.CompoundArithmeticOp, ">>="];
+          return [Token.CompoundBinaryOp, ">>="];
         } else if (this.peekEq(">")) {
           this.readChar();
           return [Token.BinaryOp, ">>"];
