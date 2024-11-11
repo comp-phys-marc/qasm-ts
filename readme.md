@@ -4,77 +4,92 @@ OpenQASM, the low-level programming language for quantum circuit specification, 
 
 Language documentation is provided by IBM [here](https://github.com/Qiskit/openqasm/blob/master/spec/qasm2.rst).
 
-## New in Version 1.1.0
+## New in Version 2.0.0
 
-- Checking for invalid code structure
-- Supporting custom gates
-- Rejecting unsupported gates
-- Better parameter parsing
-- Added conformance tests
-- Found and fixed bugs related to conformity
-- Jasmine unit tests
-- Lexing string literals
-
-## New in Latest Subversion
-
-- Updated readme.
+- Support for the OpenQASM 3.0 spec while retaining OpenQASM 2.0 backwards compatability.
 
 ## Usage
 
 Import the parse function or parseString function from the package.
 
-```
-import { parse, parseString } from 'qasm-ts';
-```
-
-`parse` can be called with a file path to a `.qasm` file. It will parse the file and return the abstract syntax tree representation.
-
-```
-let ast = parse(<file-path>);
+```ts
+import { parseFile, parseString } from 'qasm-ts';
 ```
 
-`parseString` should be called with a string of QASM code. It will parse the code and return the abstract syntax tree representation.
+`parseFile` can be called with a file path to a `.qasm` file. It will parse the file and return the abstract syntax tree representation. `parseFile` can also take 3 optional parameters: 
+1. `version`: A `number`, `OpenQASMVersion`, or `OpenQASMMajorVersion` to specify whether to use the Qasm 2 or 3 lexer/parser (defaults to version 3).
+2. `verbose`: Whether to return verbose objects that includes an extra key for each node's class name (defaults to `false`).
+3. `stringify`: Whether to stringify and format the return object (defaults to `false`).
 
+```ts
+let ast = parseFile("<file-path>");
 ```
-let ast = parseString(<qasm-string>);
+
+`parseString` should be called with a string of QASM code. It will parse the code and return the abstract syntax tree representation. `parseString` also takes the same optional arguments as `parseFile`.
+
+```ts
+let ast = parseString("<qasm-string>");
 ```
 
 ## Example I/O
 
-### Input: Deutsch_Algorithm.qasm
+### Input: `alignment.qasm` ([source](https://github.com/openqasm/openqasm/blob/main/examples/alignment.qasm))
 
 ```
-// Implementation of Deutsch algorithm with two qubits for f(x)=x
-OPENQASM 2.0;
-include "qelib1.inc";
+include "stdgates.inc";
 
-qreg q[5];
-creg c[5];
+stretch g;
 
-x q[4];
-h q[3];
-h q[4];
-cx q[3],q[4];
-h q[3];
-measure q[3] -> c[3];
+qubit[3] q;
+barrier q;
+cx q[0], q[1];
+delay[g] q[2];
+U(pi/4, 0, pi/2) q[2];
+delay[2*g] q[2];
+barrier q;
+
 ```
 
 ### Output: Abstract Syntax Tree
 
+Run with: `const ast = parseFile("./alignment.qasm", 3);`.
+
 ```
-[ QReg { id: 'q', size: 5 },
-  QReg { id: 'c', size: 5 },
-  [ ApplyGate { name: 'x', qubits: [['q',4]], params: [] } ],
-  [ ApplyGate { name: 'h', qubits: [['q',3]], params: [] } ],
-  [ ApplyGate { name: 'h', qubits: [['q',4]], params: [] } ],
-  [ ApplyGate { name: 'cx', qubits: [['q',3],['q',4]], params: [] } ],
-  [ ApplyGate { name: 'h', qubits: [['q',3]], params: [] } ],
-  Measure {
-    src_index: 3,
-    src_register: 'q',
-    dest_index: 3,
-    dest_register: 'c' 
-  } ]
+[
+  Include { filename: '"stdgates.inc"' },
+  ClassicalDeclaration {
+    classicalType: StretchType {},
+    identifier: Identifier { name: 'g' },
+    initializer: null,
+    isConst: false
+  },
+  QuantumDeclaration {
+    identifier: Identifier { name: 'q' },
+    size: IntegerLiteral { value: 3 }
+  },
+  QuantumBarrier { qubits: [ [Identifier] ] },
+  QuantumGateCall {
+    quantumGateName: Identifier { name: 'cx' },
+    qubits: [ [SubscriptedIdentifier], [SubscriptedIdentifier] ],
+    parameters: null,
+    modifiers: []
+  },
+  QuantumDelay {
+    duration: Identifier { name: 'g' },
+    qubits: [ [SubscriptedIdentifier] ]
+  },
+  QuantumGateCall {
+    quantumGateName: Identifier { name: 'U' },
+    qubits: [ [SubscriptedIdentifier] ],
+    parameters: Parameters { args: [Array] },
+    modifiers: []
+  },
+  QuantumDelay {
+    duration: Arithmetic { op: '*', left: [IntegerLiteral], right: [Identifier] },
+    qubits: [ [SubscriptedIdentifier] ]
+  },
+  QuantumBarrier { qubits: [ [Identifier] ] }
+]
 ```
 
 ## Source code
@@ -103,7 +118,8 @@ npm test
 
 The original OpenQASM authors:
 
-- Andrew W. Cross, Lev S. Bishop, John A. Smolin, Jay M. Gambetta "Open Quantum Assembly Language" [arXiv:1707.03429](http://web.archive.org/web/20210121114036/https://arxiv.org/abs/1707.03429).
+- Andrew W. Cross, Lev S. Bishop, John A. Smolin, Jay M. Gambetta "Open Quantum Assembly Language" [arXiv:1707.03429](https://web.archive.org/web/20210121114036/https://arxiv.org/abs/1707.03429).
+- Andrew W. Cross, Ali Javadi-Abhari, Thomas Alexander, Niel de Beaudrap, Lev S. Bishop, Steven Heidel, Colm A. Ryan, Prasahnt Sivarajah, John Smolin, Jay M. Gambetta, Blake R. Johnson "OpenQASM 3: A broader and deeper quantum assembly language" [arXiv:2104.14722](https://arxiv.org/abs/2104.14722)
 
 Another strongly typed implementation from which this project took some inspiration:
 
