@@ -24,6 +24,10 @@ export function parseString(
       ast = JSON.stringify(getDetailedOutput(ast), null, 2);
     }
     ast = getDetailedOutput(ast);
+  } else {
+    if (stringify === true) {
+      ast = JSON.stringify(ast, null, 2);
+    }
   }
   return ast;
 }
