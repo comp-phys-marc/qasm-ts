@@ -33,264 +33,62 @@ let ast = parseString("<qasm-string>");
 
 ## Example I/O
 
-### Input: `cphase.qasm` ([source](https://github.com/openqasm/openqasm/blob/main/examples/cphase.qasm))
+### Input: `alignment.qasm` ([source](https://github.com/openqasm/openqasm/blob/main/examples/alignment.qasm))
 
 ```
 include "stdgates.inc";
 
-gate cphase(θ) a, b
-{
-  U(0, 0, θ / 2) a;
-  CX a, b;
-  U(0, 0, -θ / 2) b;
-  CX a, b;
-  U(0, 0, θ / 2) b;
-}
-cphase(π / 2) q[0], q[1];
+stretch g;
+
+qubit[3] q;
+barrier q;
+cx q[0], q[1];
+delay[g] q[2];
+U(pi/4, 0, pi/2) q[2];
+delay[2*g] q[2];
+barrier q;
+
 ```
 
 ### Output: Abstract Syntax Tree
 
-Run with: `const ast = parseFile("./cphase.qasm", 3, true, true);`.
+Run with: `const ast = parseFile("./alignment.qasm", 3);`.
 
 ```
 [
-  {
-    "__className__": "Include",
-    "filename": "\"stdgates.inc\""
+  Include { filename: '"stdgates.inc"' },
+  ClassicalDeclaration {
+    classicalType: StretchType {},
+    identifier: Identifier { name: 'g' },
+    initializer: null,
+    isConst: false
   },
-  {
-    "__className__": "QuantumGateDefinition",
-    "name": {
-      "__className__": "Identifier",
-      "name": "cphase"
-    },
-    "params": {
-      "__className__": "Parameters",
-      "args": [
-        {
-          "__className__": "Identifier",
-          "name": "θ"
-        }
-      ]
-    },
-    "qubits": [
-      {
-        "__className__": "Identifier",
-        "name": "a"
-      },
-      {
-        "__className__": "Identifier",
-        "name": "b"
-      }
-    ],
-    "body": {
-      "__className__": "ProgramBlock",
-      "statements": [
-        {
-          "__className__": "QuantumGateCall",
-          "quantumGateName": {
-            "__className__": "Identifier",
-            "name": "U"
-          },
-          "qubits": [
-            {
-              "__className__": "Identifier",
-              "name": "a"
-            }
-          ],
-          "parameters": {
-            "__className__": "Parameters",
-            "args": [
-              {
-                "__className__": "IntegerLiteral",
-                "value": 0
-              },
-              {
-                "__className__": "IntegerLiteral",
-                "value": 0
-              },
-              {
-                "__className__": "Arithmetic",
-                "op": "/",
-                "left": {
-                  "__className__": "Identifier",
-                  "name": "θ"
-                },
-                "right": {
-                  "__className__": "IntegerLiteral",
-                  "value": 2
-                }
-              }
-            ]
-          },
-          "modifiers": []
-        },
-        {
-          "__className__": "QuantumGateCall",
-          "quantumGateName": {
-            "__className__": "Identifier",
-            "name": "CX"
-          },
-          "qubits": [
-            {
-              "__className__": "Identifier",
-              "name": "a"
-            },
-            {
-              "__className__": "Identifier",
-              "name": "b"
-            }
-          ],
-          "parameters": null,
-          "modifiers": []
-        },
-        {
-          "__className__": "QuantumGateCall",
-          "quantumGateName": {
-            "__className__": "Identifier",
-            "name": "U"
-          },
-          "qubits": [
-            {
-              "__className__": "Identifier",
-              "name": "b"
-            }
-          ],
-          "parameters": {
-            "__className__": "Parameters",
-            "args": [
-              {
-                "__className__": "IntegerLiteral",
-                "value": 0
-              },
-              {
-                "__className__": "IntegerLiteral",
-                "value": 0
-              },
-              {
-                "__className__": "Arithmetic",
-                "op": "/",
-                "left": {
-                  "__className__": "Unary",
-                  "op": "-",
-                  "operand": {
-                    "__className__": "Identifier",
-                    "name": "θ"
-                  }
-                },
-                "right": {
-                  "__className__": "IntegerLiteral",
-                  "value": 2
-                }
-              }
-            ]
-          },
-          "modifiers": []
-        },
-        {
-          "__className__": "QuantumGateCall",
-          "quantumGateName": {
-            "__className__": "Identifier",
-            "name": "CX"
-          },
-          "qubits": [
-            {
-              "__className__": "Identifier",
-              "name": "a"
-            },
-            {
-              "__className__": "Identifier",
-              "name": "b"
-            }
-          ],
-          "parameters": null,
-          "modifiers": []
-        },
-        {
-          "__className__": "QuantumGateCall",
-          "quantumGateName": {
-            "__className__": "Identifier",
-            "name": "U"
-          },
-          "qubits": [
-            {
-              "__className__": "Identifier",
-              "name": "b"
-            }
-          ],
-          "parameters": {
-            "__className__": "Parameters",
-            "args": [
-              {
-                "__className__": "IntegerLiteral",
-                "value": 0
-              },
-              {
-                "__className__": "IntegerLiteral",
-                "value": 0
-              },
-              {
-                "__className__": "Arithmetic",
-                "op": "/",
-                "left": {
-                  "__className__": "Identifier",
-                  "name": "θ"
-                },
-                "right": {
-                  "__className__": "IntegerLiteral",
-                  "value": 2
-                }
-              }
-            ]
-          },
-          "modifiers": []
-        }
-      ]
-    }
+  QuantumDeclaration {
+    identifier: Identifier { name: 'q' },
+    size: IntegerLiteral { value: 3 }
   },
-  {
-    "__className__": "QuantumGateCall",
-    "quantumGateName": {
-      "__className__": "Identifier",
-      "name": "cphase"
-    },
-    "qubits": [
-      {
-        "__className__": "SubscriptedIdentifier",
-        "name": "q",
-        "subscript": {
-          "__className__": "IntegerLiteral",
-          "value": 0
-        }
-      },
-      {
-        "__className__": "SubscriptedIdentifier",
-        "name": "q",
-        "subscript": {
-          "__className__": "IntegerLiteral",
-          "value": 1
-        }
-      }
-    ],
-    "parameters": {
-      "__className__": "Parameters",
-      "args": [
-        {
-          "__className__": "Arithmetic",
-          "op": "/",
-          "left": {
-            "__className__": "Pi"
-          },
-          "right": {
-            "__className__": "IntegerLiteral",
-            "value": 2
-          }
-        }
-      ]
-    },
-    "modifiers": []
-  }
+  QuantumBarrier { qubits: [ [Identifier] ] },
+  QuantumGateCall {
+    quantumGateName: Identifier { name: 'cx' },
+    qubits: [ [SubscriptedIdentifier], [SubscriptedIdentifier] ],
+    parameters: null,
+    modifiers: []
+  },
+  QuantumDelay {
+    duration: Identifier { name: 'g' },
+    qubits: [ [SubscriptedIdentifier] ]
+  },
+  QuantumGateCall {
+    quantumGateName: Identifier { name: 'U' },
+    qubits: [ [SubscriptedIdentifier] ],
+    parameters: Parameters { args: [Array] },
+    modifiers: []
+  },
+  QuantumDelay {
+    duration: Arithmetic { op: '*', left: [IntegerLiteral], right: [Identifier] },
+    qubits: [ [SubscriptedIdentifier] ]
+  },
+  QuantumBarrier { qubits: [ [Identifier] ] }
 ]
 ```
 
