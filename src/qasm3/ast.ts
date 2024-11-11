@@ -550,8 +550,10 @@ class ClassicalDeclaration extends Statement {
   ) {
     super();
     this.classicalType = classicalType;
-    this.identifier = identifier !== undefined && identifier !== null ? identifier : null;
-    this.initializer = initializer !== undefined && initializer !== null ? initializer : null;
+    this.identifier =
+      identifier !== undefined && identifier !== null ? identifier : null;
+    this.initializer =
+      initializer !== undefined && initializer !== null ? initializer : null;
     this.isConst = isConst !== undefined && isConst !== null ? isConst : false;
   }
 }
@@ -840,31 +842,6 @@ class SubroutineCall extends Statement {
     this.parameters = parameters ? parameters : null;
   }
 }
-
-/**
- * Class representing a calibration statement argument.
- *
- * calibrationArgumentList
- *  : classicalArgumentList | expressionList
- *  returnSignature? LBRACE .*? RBRACE
- */
-// class CalibrationDefinition extends Statement {
-//   name: Identifier;
-//   identifierList: Array<Identifier>;
-//   calibrationArgumentList: Array<CalibrationArgument> | null;
-//   constructor(
-//     name: Identifier,
-//     identifierList: Array<Identifier>,
-//     calibrationArgumentList?: Array<CalibrationArgument>,
-//   ) {
-//     super();
-//     this.name = name;
-//     this.identifierList = identifierList;
-//     this.calibrationArgumentList = calibrationArgumentList
-//       ? calibrationArgumentList
-//       : null;
-//   }
-// }
 
 /**
  * Class representing a branching if statement.

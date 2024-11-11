@@ -335,6 +335,13 @@ class Parser {
           );
           return [[classicalNode], consumed];
         }
+      case Token.CReg: {
+        const [classicalNode, consumed] = this.classicalDeclaration(
+          tokens,
+          false,
+        );
+        return [[classicalNode], consumed];
+      }
       case Token.Measure: {
         const [measureNode, measureConsumed] = this.measureStatement(tokens);
         return [[measureNode], measureConsumed];
@@ -450,6 +457,7 @@ class Parser {
         } else if (
           this.matchNext(tokens.slice(1), [Token.EqualsAssmt]) ||
           this.matchNext(tokens.slice(1), [Token.CompoundArithmeticOp]) ||
+          this.matchNext(tokens.slice(1), [Token.CompoundBinaryOp]) ||
           this.isAssignment(tokens)
         ) {
           const [assignmentNode, consumed] = this.assignment(tokens);
@@ -546,7 +554,10 @@ class Parser {
       this.parseClassicalType(tokens);
     consumed += classicalTypeConsumed;
 
-    if (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
+    if (
+      !this.matchNext(tokens.slice(consumed), [Token.RParen]) &&
+      !this.matchNext(tokens.slice(consumed), [Token.Comma])
+    ) {
       const [identifier, idConsumed] = this.unaryExpression(
         tokens.slice(consumed),
       );
@@ -565,15 +576,10 @@ class Parser {
       if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
         consumed++;
       }
-    } 
+    }
 
     return [
-      new ClassicalDeclaration(
-        classicalType,
-        id,
-        initialValue,
-        isConstParam,
-      ),
+      new ClassicalDeclaration(classicalType, id, initialValue, isConstParam),
       consumed,
     ];
   }
@@ -721,8 +727,33 @@ class Parser {
         const [expr, exprConsumed] = this.unaryExpression(tokens.slice(1));
         return [new Unary(token[1] as UnaryOp, expr), consumed + exprConsumed];
       }
-      case Token.LParen:
-        return this.parseParameters(tokens);
+      case Token.LParen: {
+        let i = 1;
+        let parenCount = 1;
+        while (parenCount > 0 && i < tokens.length) {
+          if (tokens[i][0] === Token.LParen) {
+            parenCount++;
+          } else if (tokens[i][0] === Token.RParen) {
+            parenCount--;
+          } else if (parenCount === 1 && tokens[i][0] === Token.Comma) {
+            return this.parseParameters(tokens);
+          }
+          i++;
+        }
+        const [expr, exprConsumed] = this.binaryExpression(tokens.slice(1));
+        consumed += exprConsumed;
+
+        if (!this.matchNext(tokens.slice(consumed), [Token.RParen])) {
+          throwParserError(
+            MissingBraceError,
+            tokens[consumed],
+            this.index + consumed,
+            "expected closing parenthesis",
+          );
+        }
+        consumed++;
+        return [expr, consumed];
+      }
       default:
         if (isTypeToken(token[0])) {
           return this.parseTypeCast(tokens);
@@ -794,7 +825,11 @@ class Parser {
     consumed += lhsConsumed;
 
     // Handle compound assignments
-    if (tokens[consumed][0] === Token.CompoundArithmeticOp) {
+    const operatorToken = tokens[consumed][0];
+    if (
+      operatorToken === Token.CompoundArithmeticOp ||
+      operatorToken === Token.CompoundBinaryOp
+    ) {
       consumed++;
       const operator = tokens[lhsConsumed][1].toString();
       const [rhs, rhsConsumed] = this.binaryExpression(tokens.slice(consumed));
@@ -810,12 +845,29 @@ class Parser {
       }
       consumed++;
 
-      const arithmeticOp = operator.slice(0, -1) as ArithmeticOp;
-      const arithmeticExpression = new Arithmetic(arithmeticOp, lhs, rhs);
+      let op: ArithmeticOp | BinaryOp;
+      let expression: Arithmetic | Binary;
+      switch (operatorToken) {
+        case Token.CompoundArithmeticOp:
+          op = operator.slice(0, -1) as ArithmeticOp;
+          expression = new Arithmetic(op, lhs, rhs);
+          break;
+        case Token.CompoundBinaryOp:
+          op = operator.slice(0, -1) as BinaryOp;
+          expression = new Binary(op, lhs, rhs);
+          break;
+        default:
+          throwParserError(
+            BadExpressionError,
+            tokens[consumed],
+            this.index + consumed,
+            "invalid compound operator",
+          );
+      }
       return [
         new AssignmentStatement(
           lhs as SubscriptedIdentifier | Identifier,
-          arithmeticExpression,
+          expression,
         ),
         consumed,
       ];
@@ -1266,15 +1318,17 @@ class Parser {
       consumed += paramsConsumed;
     }
 
-    if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
-      throwParserError(
-        MissingSemicolonError,
-        tokens[consumed],
-        this.index + consumed,
-        "expected semicolon after subroutine call",
-      );
+    // if (!this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+    //   throwParserError(
+    //     MissingSemicolonError,
+    //     tokens[consumed],
+    //     this.index + consumed,
+    //     "expected semicolon after subroutine call",
+    //   );
+    // }
+    if (this.matchNext(tokens.slice(consumed), [Token.Semicolon])) {
+      consumed++;
     }
-    consumed++;
 
     return [
       new SubroutineCall(subroutineName as Identifier, callParams),
@@ -1541,16 +1595,6 @@ class Parser {
         );
     }
 
-    if (!this.matchNext(tokens.slice(consumed), [Token.At])) {
-      throwParserError(
-        BadGateError,
-        tokens[consumed],
-        this.index + consumed,
-        "expected `@` symbol after gate modifier",
-      );
-    }
-    consumed++;
-
     if (this.matchNext(tokens.slice(consumed), [Token.LParen])) {
       consumed++;
       const [arg, argConsumed] = this.binaryExpression(tokens.slice(consumed));
@@ -1567,6 +1611,17 @@ class Parser {
       }
       consumed++;
     }
+
+    if (!this.matchNext(tokens.slice(consumed), [Token.At])) {
+      throwParserError(
+        BadGateError,
+        tokens[consumed],
+        this.index + consumed,
+        "expected `@` symbol after gate modifier",
+      );
+    }
+    consumed++;
+
     return [new QuantumGateModifier(modifier, argument), consumed];
   }
 
@@ -1590,7 +1645,10 @@ class Parser {
           );
           args.push(qubitParam);
           consumed += qubitConsumed;
-        } else if (this.matchNext(tokens.slice(consumed), [Token.Bit])) {
+        } else if (
+          this.matchNext(tokens.slice(consumed), [Token.Bit]) ||
+          this.matchNext(tokens.slice(consumed), [Token.CReg])
+        ) {
           const [bitParam, bitConsumed] = this.parseNode(
             tokens.slice(consumed),
           );
@@ -2896,6 +2954,8 @@ class Parser {
         return new BoolType();
       case Token.Bit:
         return new BitType(width);
+      case Token.CReg:
+        return new BitType(width);
       case Token.Stretch:
         return new StretchType();
       case Token.Duration:
@@ -3070,7 +3130,8 @@ function isTypeToken(token: Token): boolean {
     token === Token.Bool ||
     token === Token.Duration ||
     token === Token.Angle ||
-    token === Token.Stretch
+    token === Token.Stretch ||
+    token === Token.Bit
   );
 }
 

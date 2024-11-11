@@ -358,7 +358,7 @@ class Lexer {
         } else if (this.peekEq("=")) {
           this.readChar();
           return [Token.CompoundArithmeticOp, "-="];
-        } 
+        }
         return [Token.UnaryOp, "-"];
       }
       case "&":
@@ -378,13 +378,19 @@ class Lexer {
       case "^":
         if (this.peekEq("=")) {
           this.readChar();
-          return [Token.CompoundArithmeticOp, "^="];
+          return [Token.CompoundBinaryOp, "^="];
         }
         return [Token.BinaryOp, "^"];
       case "<":
         if (this.peekEq("=")) {
           this.readChar();
           return [Token.BinaryOp, "<="];
+        } else if (
+          this.input[this.cursor] == "<" &&
+          this.input[this.cursor + 1] == "="
+        ) {
+          this.readChar(2);
+          return [Token.CompoundBinaryOp, "<<="];
         } else if (this.peekEq("<")) {
           this.readChar();
           return [Token.BinaryOp, "<<"];
@@ -395,6 +401,12 @@ class Lexer {
         if (this.peekEq("=")) {
           this.readChar();
           return [Token.BinaryOp, ">="];
+        } else if (
+          this.input[this.cursor] == ">" &&
+          this.input[this.cursor + 1] == "="
+        ) {
+          this.readChar(2);
+          return [Token.CompoundBinaryOp, ">>="];
         } else if (this.peekEq(">")) {
           this.readChar();
           return [Token.BinaryOp, ">>"];
@@ -473,7 +485,8 @@ class Lexer {
       case "p":
         if (
           this.input[this.cursor] == "o" &&
-          this.input[this.cursor + 1] == "w"
+          this.input[this.cursor + 1] == "w" &&
+          !isLetter(this.input[this.cursor + 2])
         ) {
           this.readChar(2);
           return this.lexGateModifier("pow");
