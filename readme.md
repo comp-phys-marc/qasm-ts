@@ -136,3 +136,19 @@ http://www.apache.org/licenses/LICENSE-2.0
 ```
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+## How to Cite
+
+If you are using QASM-TS for research we appreciate any citations. Please read and cite our pre-print at https://arxiv.org/abs/2412.12578.
+
+```
+@misc{kim2024enablingverificationformalizationhybrid,
+      title={Enabling the Verification and Formalization of Hybrid Quantum-Classical Computing with OpenQASM 3.0 compatible QASM-TS 2.0}, 
+      author={Sean Kim and Marcus Edwards},
+      year={2024},
+      eprint={2412.12578},
+      archivePrefix={arXiv},
+      primaryClass={cs.PL},
+      url={https://arxiv.org/abs/2412.12578}, 
+}
+```
