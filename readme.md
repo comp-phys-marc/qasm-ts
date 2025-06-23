@@ -1,5 +1,8 @@
 # QASM TypeScript
 
+![NPM Downloads](https://img.shields.io/npm/dy/qasm-ts)
+
+
 OpenQASM, the low-level programming language for quantum circuit specification, implemented in TypeScript.
 
 Language documentation is provided by IBM [here](https://github.com/Qiskit/openqasm/blob/master/spec/qasm2.rst).
