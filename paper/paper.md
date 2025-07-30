@@ -1,9 +1,9 @@
 ---
-author:
+authors:
   - name: Sean Kim[^1]
-    affiliation: '2'
+    affiliation: "2"
   - name: Marcus Edwards[^2]
-    affiliation: '1'
+    affiliation: "1"
     orcid: 0000-0001-6591-9585
 tags:
   - TypeScript
@@ -11,7 +11,7 @@ tags:
   - Compiling
 bibliography:
   - main.bib
-date: July 2025
+date: 30 July 2025
 title: Enabling the Verification and Formalization of Hybrid
   Quantum-Classical Computing with OpenQASM 3.0 compatible QASM-TS 2.0
 affiliations:
