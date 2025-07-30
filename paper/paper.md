@@ -1,9 +1,9 @@
 ---
 authors:
   - name: Sean Kim[^1]
-    affiliation: "2"
-  - name: Marcus Edwards[^2]
     affiliation: "1"
+  - name: Marcus Edwards[^2]
+    affiliation: "2"
     orcid: 0000-0001-6591-9585
 tags:
   - TypeScript
@@ -16,9 +16,9 @@ title: Enabling the Verification and Formalization of Hybrid
   Quantum-Classical Computing with OpenQASM 3.0 compatible QASM-TS 2.0
 affiliations:
  - name: University of British Columbia
-   index: 1
- - name: George Washington University
    index: 2
+ - name: George Washington University
+   index: 1
 ---
 
 # Summary
