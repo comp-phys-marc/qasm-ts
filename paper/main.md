@@ -1,12 +1,24 @@
 ---
 author:
-- "Sean Kim[^1]"
-- "Marcus Edwards[^2]"
+  - Sean Kim[^1]
+    affiliation: 2
+  - Marcus Edwards[^2]
+    affiliation: 1
+    orcid: 0000-0001-6591-9585
+tags:
+  - TypeScript
+  - Quantum computing
+  - Compiling
 bibliography:
 - main.bib
 date: July 2025
 title: Enabling the Verification and Formalization of Hybrid
   Quantum-Classical Computing with OpenQASM 3.0 compatible QASM-TS 2.0
+affiliations:
+ - name: University of British Columbia
+   index: 1
+ - name: George Washington University
+   index: 2
 ---
 
 # Abstract
@@ -735,6 +747,10 @@ quantum algorithms. Learning on these token sequences may be compared to
 learning on sets of statevectors, for example, and the differences might
 be interesting to explore.
 
+# Acknowledgements
+
+We would like to thank Dr. Shohini Ghose for support and helpful discussions regarding the previous version of this software package, QASM-TS 1.0, which has had use in the community by hundreds.
+
 # Appendices
 
 A further work might formally define the type system for OpenQASM 3.0.
@@ -799,3 +815,5 @@ $$\begin{aligned}
 [^1]: skim658\@gwu.edu
 
 [^2]: msedward\@student.ubc.ca
+
+# References
