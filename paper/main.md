@@ -1,9 +1,9 @@
 ---
 author:
-  - Sean Kim[^1]
-    affiliation: 2
-  - Marcus Edwards[^2]
-    affiliation: 1
+  - name: Sean Kim[^1]
+    affiliation: '2'
+  - name: Marcus Edwards[^2]
+    affiliation: '1'
     orcid: 0000-0001-6591-9585
 tags:
   - TypeScript
