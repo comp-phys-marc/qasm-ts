@@ -33,13 +33,6 @@ computing by providing tools that may help with such efforts.
 
 ### Top Level Abstractions
 
-Users can simply invoke the entire parsing process by calling the two
-main package entry points:
-
--   *parseFile*
-
--   *parseString*
-
 The parser implements recursive descent parsing with support for
 expression precedence and type checking. At a high
 level, the parsing can be split into three logical sections: expression
@@ -134,6 +127,10 @@ a hybrid quantum / classical cloud. We
 suggest that a closer marriage of open source efforts to the
 inherently web based stack supporting existing quantum computing
 offerings is desirable.
+
+We note that Osaka University's open source quantum computer operating system project "Oqtopus"
+already depends on and makes use of Qasm-ts [@osaka_2025] and thank the Oqtopus team for their interest 
+in our work.
 
 # Outcomes
 
