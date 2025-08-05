@@ -15,10 +15,10 @@ date: 30 July 2025
 title: Enabling the Verification and Formalization of Hybrid
   Quantum-Classical Computing with OpenQASM 3.0 compatible QASM-TS 2.0
 affiliations:
- - name: University of British Columbia, Canada
-   index: 2
  - name: George Washington University, United States of America
    index: 1
+ - name: University of British Columbia, Canada
+   index: 2
 ---
 
 # Summary
