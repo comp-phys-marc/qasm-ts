@@ -5,6 +5,10 @@
 
 OpenQASM, the low-level programming language for quantum circuit specification, implemented in TypeScript.
 
+QASM-TS 2.0 is an implementation of a compiler frontend for OpenQASM 2.0 and 3.0. It includes a lexer and a parser of the OpenQASM language. The source is parsed into an Intermediate Representation (IR): an Abstract Syntax Tree (AST) that captures program structure including control flow and data flow.
+
+The package is aimed at enabling implementations of verification and validation software (such as semantic and static analyzers), compilers and more. These tools may be instrumental in the formalization of hybrid quantum-classical computing.
+
 Language documentation is provided by IBM [here](https://openqasm.com).
 
 ## New in Version 2.0.0
