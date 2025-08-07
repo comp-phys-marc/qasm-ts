@@ -36,6 +36,10 @@ let ast = parseString("<qasm-string>");
 
 The return type for both `parseFile` and `parseString` is `Array<AstNode>`, unless the `stringify` parameter is `true`, in which case the return is a `String`.
 
+The parser is able to recognize and handle 19 distinct types of syntax errors, which are defined and
+exported in `errors.ts`. While this is not an advanced semantic or static analysis, it should enable 
+users to basically validate their OpenQASM 2.0 or 3.0 code.
+
 ## Example I/O
 
 ### Input: `alignment.qasm` ([source](https://github.com/openqasm/openqasm/blob/main/examples/alignment.qasm))
