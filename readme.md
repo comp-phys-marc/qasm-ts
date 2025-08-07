@@ -19,16 +19,16 @@ Import the parse function or parseString function from the package.
 import { parseFile, parseString } from 'qasm-ts';
 ```
 
-`parseFile` can be called with a file path to a `.qasm` file. It will parse the file and return the abstract syntax tree representation. `parseFile` can also take 3 optional parameters: 
-1. `version`: A `number`, `OpenQASMVersion`, or `OpenQASMMajorVersion` to specify whether to use the Qasm 2 or 3 lexer/parser (defaults to version 3).
-2. `verbose`: Whether to return verbose objects that includes an extra key for each node's class name (defaults to `false`).
-3. `stringify`: Whether to stringify and format the return object (defaults to `false`).
+`parseFile` can be called with a `String` file path to a `.qasm` file. It will parse the file and return the abstract syntax tree representation. `parseFile` can also take 3 optional parameters: 
+1. `version`: A `number`, `OpenQASMVersion`, or `OpenQASMMajorVersion`. Specifies whether to use the Qasm 2 or 3 lexer/parser (defaults to version 3).
+2. `verbose`: A `Boolean`. Whether to return verbose objects that includes an extra key for each node's class name (defaults to `false`).
+3. `stringify`: A `Boolean`. Whether to stringify and format the return object (defaults to `false`).
 
 ```ts
 let ast = parseFile("<file-path>");
 ```
 
-`parseString` should be called with a string of QASM code. It will parse the code and return the abstract syntax tree representation. `parseString` also takes the same optional arguments as `parseFile`.
+`parseString` should be called with a `String` of QASM code. It will parse the code and return the abstract syntax tree representation. `parseString` also takes the same optional arguments as `parseFile`.
 
 ```ts
 let ast = parseString("<qasm-string>");
