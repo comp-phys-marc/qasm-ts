@@ -1,0 +1,2 @@
+To get started contributing to QASM-TS, please see the open issues for a place to start.
+Alternatively, you are welcome to create any issues which you feel may capture changes, improvements or additions to the package that would be useful. These will be reviewed in a timely manner by a maintainer.

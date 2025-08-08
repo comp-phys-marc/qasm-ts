@@ -5,7 +5,11 @@
 
 OpenQASM, the low-level programming language for quantum circuit specification, implemented in TypeScript.
 
-Language documentation is provided by IBM [here](https://github.com/Qiskit/openqasm/blob/master/spec/qasm2.rst).
+QASM-TS 2.0 is an implementation of a compiler frontend for OpenQASM 2.0 and 3.0. It includes a lexer and a parser of the OpenQASM language. The source is parsed into an Intermediate Representation (IR): an Abstract Syntax Tree (AST) that captures program structure including control flow and data flow.
+
+The package is aimed at enabling implementations of verification and validation software (such as semantic and static analyzers), compilers and more. These tools may be instrumental in the formalization of hybrid quantum-classical computing.
+
+Language documentation is provided by IBM [here](https://openqasm.com).
 
 ## New in Version 2.0.0
 
@@ -19,20 +23,28 @@ Import the parse function or parseString function from the package.
 import { parseFile, parseString } from 'qasm-ts';
 ```
 
-`parseFile` can be called with a file path to a `.qasm` file. It will parse the file and return the abstract syntax tree representation. `parseFile` can also take 3 optional parameters: 
-1. `version`: A `number`, `OpenQASMVersion`, or `OpenQASMMajorVersion` to specify whether to use the Qasm 2 or 3 lexer/parser (defaults to version 3).
-2. `verbose`: Whether to return verbose objects that includes an extra key for each node's class name (defaults to `false`).
-3. `stringify`: Whether to stringify and format the return object (defaults to `false`).
+`parseFile` can be called with a `String` file path to a `.qasm` file. It will parse the file and return the abstract syntax tree representation. `parseFile` can also take 3 optional parameters: 
+1. `version`: A `number`, `OpenQASMVersion`, or `OpenQASMMajorVersion`. Specifies whether to use the Qasm 2 or 3 lexer/parser (defaults to version 3).
+2. `verbose`: A `Boolean`. Whether to return verbose objects that includes an extra key for each node's class name (defaults to `false`).
+3. `stringify`: A `Boolean`. Whether to stringify and format the return object (defaults to `false`).
 
 ```ts
 let ast = parseFile("<file-path>");
 ```
 
-`parseString` should be called with a string of QASM code. It will parse the code and return the abstract syntax tree representation. `parseString` also takes the same optional arguments as `parseFile`.
+`parseString` should be called with a `String` of QASM code. It will parse the code and return the abstract syntax tree representation. `parseString` also takes the same optional arguments as `parseFile`.
 
 ```ts
 let ast = parseString("<qasm-string>");
 ```
+
+The return type for both `parseFile` and `parseString` is `Array<AstNode>`, unless the `stringify` parameter is `true`, in which case the return is a `String`.
+
+The parser is able to recognize and handle 19 distinct types of syntax errors, which are defined and
+exported in `errors.ts`. While this is not an advanced semantic or static analysis, it should enable 
+users to basically validate their OpenQASM 2.0 or 3.0 code.
+
+Conprehensive API docs can be found in the `docs/` directory.
 
 ## Example I/O
 
@@ -98,6 +110,11 @@ Run with: `const ast = parseFile("./alignment.qasm", 3);`.
 ## Source code
 
 Feel free to clone, fork, comment or contribute on [GitHub](https://github.com/comp-phys-marc/qasm-ts)!
+
+## Contributing
+
+To get started contributing to QASM-TS, please see the open issues for a place to start.
+Alternatively, you are welcome to create any issues which you feel may capture changes, improvements or additions to the package that would be useful. These may be bug reports or enhancement requests. These will be reviewed in a timely manner by a maintainer. If you are able to implement any desired functionality or bug fixes yourself, we also welcome and promise to review any pull requests. Please simply fork the repository and create a branch in your fork with the changes in question. When you create your pull request, make sure to target our repo.
 
 ## Transpiling
 
