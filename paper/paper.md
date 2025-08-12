@@ -9,8 +9,7 @@ tags:
   - TypeScript
   - Quantum computing
   - Compiling
-bibliography:
-  - main.bib
+bibliography: main.bib
 date: 30 July 2025
 title: Enabling the Verification and Formalization of Hybrid
   Quantum-Classical Computing with OpenQASM 3.0 compatible QASM-TS 2.0
