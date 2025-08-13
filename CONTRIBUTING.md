@@ -1,2 +1,3 @@
 To get started contributing to QASM-TS, please see the open issues for a place to start.
-Alternatively, you are welcome to create any issues which you feel may capture changes, improvements or additions to the package that would be useful. These will be reviewed in a timely manner by a maintainer.
+Alternatively, you are welcome to create any issues which you feel may capture changes, improvements or additions to the package that would be useful. These may be bug reports or enhancement requests. These will be reviewed in a timely manner by a maintainer. If you are able to implement any desired functionality or bug fixes yourself, we also welcome and promise to review any pull requests. Please simply fork the repository and create a branch in your fork with the changes in question. When you create your pull request, make sure to target our repo.
+Thanks!
