@@ -134,6 +134,10 @@ npm install
 npm test
 ```
 
+## Run benchmarks
+
+To run benchmarks that compare this package's performance against pre-existing ANTLR and Rust based parsers, see the [benchmarking repo](https://github.com/seankim658/qasm-parser-testing) and its instructions.
+
 ## References
 
 The original OpenQASM authors:
