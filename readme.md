@@ -13,7 +13,7 @@ Language documentation is provided by IBM [here](https://openqasm.com).
 
 ## New in Version 2.0.0
 
-- Support for the OpenQASM 3.0 spec while retaining OpenQASM 2.0 backwards compatability.
+- Support for the OpenQASM 3.0 spec while retaining OpenQASM 2.0 backwards compatibility.
 
 ## Usage
 
@@ -44,7 +44,7 @@ The parser is able to recognize and handle 19 distinct types of syntax errors, w
 exported in `errors.ts`. While this is not an advanced semantic or static analysis, it should enable 
 users to basically validate their OpenQASM 2.0 or 3.0 code.
 
-Conprehensive API docs can be found in the `docs/` directory.
+Comprehensive API docs can be found in the `docs/` directory.
 
 ## Example I/O
 
