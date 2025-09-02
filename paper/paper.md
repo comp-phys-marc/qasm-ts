@@ -2,6 +2,7 @@
 authors:
   - name: Sean Kim[^1]
     affiliation: "1"
+    orcid: 0009-0006-1223-1895
   - name: Marcus Edwards[^2]
     affiliation: "2"
     orcid: 0000-0001-6591-9585
