@@ -67,8 +67,6 @@ barrier q;
 
 ### Output: Abstract Syntax Tree
 
-Run with: `const ast = parseFile("./alignment.qasm", 3);`.
-
 ```
 [
   Include { filename: '"stdgates.inc"' },
@@ -105,6 +103,22 @@ Run with: `const ast = parseFile("./alignment.qasm", 3);`.
   },
   QuantumBarrier { qubits: [ [Identifier] ] }
 ]
+```
+
+To reproduce this output, you could run the following script in the directory where `alignment.qasm` is located.
+
+```
+import { parseFile } from 'qasm-ts';
+
+const ast = parseFile("./alignment.qasm", 3);
+
+console.log(ast);
+```
+
+To run TypeScript files, you can use any number of compilers, but we recommend `ts-node`. For more information on `ts-node`, refer to [the docs](https://www.npmjs.com/package/ts-node).
+
+```
+ts-node script.ts
 ```
 
 ## Source code
