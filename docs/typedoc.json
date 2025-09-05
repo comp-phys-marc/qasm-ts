@@ -1,0 +1,47 @@
+{
+  "entryPointStrategy": "expand",
+  "entryPoints": [
+    "../src/main.ts",
+    "../src/lexer.ts",
+    "../src/token.ts",
+    "../src/parser.ts",
+    "../src/errors.ts",
+    "../src/version.ts",
+    "../src/qasm2/",
+    "../src/qasm3/"
+  ],
+  "out": "typedoc/",
+  "readme": "docs-readme.md",
+  "theme": "default",
+  "includeVersion": true,
+  "sortEntryPoints": false,
+  "categorizeByGroup": true,
+  "categoryOrder": [
+    "Main Functions",
+    "AST Nodes",
+    "OpenQasm 2.0",
+    "OpenQasm 3.0",
+    "Parsing",
+    "Lexing",
+    "Error Handling",
+    "Version Management",
+    "*"
+  ],
+  "groupOrder": [
+    "Main Functions",
+    "AST Nodes",
+    "OpenQASM 2.0",
+    "OpenQASM 3.0",
+    "Parsing",
+    "Lexing",
+    "Error Handling",
+    "Version Management",
+    "*"
+  ],
+  "navigationLinks": {
+    "GitHub": "https://github.com/comp-phys-marc/qasm-ts",
+    "NPM": "https://www.npmjs.com/package/qasm-ts"
+  },
+  "hideGenerator": true,
+  "customCss": "./custom.css"
+}
