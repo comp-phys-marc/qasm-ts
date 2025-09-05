@@ -1,5 +1,40 @@
 /* eslint-disable no-useless-escape */
 
+/**
+ * OpenQASM 3.0 Lexical Analyzer
+ *
+ * This module implements the lexer for OpenQASM 3.0, which transforms source code
+ * into a stream of tokens. The lexer handles the significantly expanded syntax of
+ * OpenQASM 3.0, including classical programming constructs, control flow, and
+ * advanced quantum features.
+ *
+ * Key features of the OpenQASM 3.0 lexer:
+ * - **Extended token set**: Classical types, control flow, functions
+ * - **Complex operators**: Compound assignment, bitwise operations
+ * - **Advanced literals**: Scientific notation, binary/hex/octal, durations
+ * - **Gate modifiers**: ctrl, negctrl, inv, pow with @ syntax
+ * - **Unicode support**: Mathematical constants (π, ℇ, τ)
+ * - **Robust error handling**: Detailed syntax error reporting
+ *
+ * The lexer performs several validation passes:
+ * - Semicolon verification for statement termination
+ * - Comment handling (single-line // and multi-line /* *\/)
+ * - String literal parsing with multiple quote styles
+ * - Number format validation and conversion
+ *
+ * @module
+ *
+ * @example Basic lexing process
+ * ```typescript
+ * const lexer = new Lexer('qubit[2] q; h q[0];');
+ * const tokens = lexer.lex();
+ * // Returns: [
+ * //   [Token.Id, 'qubit'], [Token.LSParen], [Token.NNInteger, 2],
+ * //   [Token.RSParen], [Token.Id, 'q'], [Token.Semicolon], ...
+ * // ]
+ * ```
+ */
+
 import { Token, lookup } from "./token";
 import {
   MissingSemicolonError,
@@ -83,7 +118,31 @@ function isNewline(c: string): boolean {
   return /\n|\r(?!\n)|\u2028|\u2029|\r\n/.test(c);
 }
 
-/** Class representing a lexer. */
+/**
+ * OpenQASM 3.0 Lexical Analyzer
+ *
+ * The main lexer class that processes OpenQASM 3.0 source code character by
+ * character and produces a stream of tokens for the parser to consume.
+ *
+ * The lexer maintains state including:
+ * - Current cursor position in the input
+ * - Input validation status
+ * - Error reporting context
+ *
+ * @example Creating and using a lexer
+ * ```typescript
+ * const source = `
+ *   OPENQASM 3.0;
+ *   include "stdgates.inc";
+ *   qubit[2] q;
+ *   h q[0];
+ *   cx q[0], q[1];
+ * `;
+ *
+ * const lexer = new Lexer(source);
+ * const tokens = lexer.lex();
+ * ```
+ */
 class Lexer {
   /** The string to lex. */
   input: string;
