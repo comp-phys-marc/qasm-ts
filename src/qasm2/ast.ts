@@ -1,3 +1,37 @@
+/**
+ * OpenQASM 2.0 Abstract Syntax Tree Node Definitions
+ *
+ * This module defines the AST node classes for OpenQASM 2.0, which provides
+ * a simpler and more limited set of constructs compared to OpenQASM 3.0.
+ *
+ * OpenQASM 2.0 focuses on:
+ * - Basic quantum register (`qreg`) and classical register (`creg`) declarations
+ * - Gate definitions and applications
+ * - Measurement operations
+ * - Simple conditional statements
+ * - Basic arithmetic expressions
+ *
+ * Key limitations compared to 3.0:
+ * - No advanced classical types (only registers)
+ * - No control flow structures (loops, complex conditionals)
+ * - No function definitions or subroutines
+ * - Limited expression capabilities
+ *
+ * @module
+ *
+ * @example Basic OpenQASM 2.0 constructs
+ * ```typescript
+ * // Quantum register: qreg q[2];
+ * new QReg('q', 2)
+ *
+ * // Gate application: h q[0];
+ * new ApplyGate('h', [['q', 0]], [])
+ *
+ * // Measurement: measure q[0] -> c[0];
+ * new Measure('q', 'c', 0, 0)
+ * ```
+ */
+
 import { OpenQASMVersion } from "../version";
 
 /** Base class representing a basic AST node. */

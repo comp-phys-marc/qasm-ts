@@ -1,3 +1,35 @@
+/**
+ * OpenQASM 2.0 Token Definitions and Utilities
+ *
+ * This module defines the token types used in OpenQASM 2.0 syntax. OpenQASM 2.0
+ * has a simpler token set compared to 3.0, focusing on basic quantum operations
+ * and classical registers without advanced control flow or data types.
+ *
+ * Key differences from OpenQASM 3.0:
+ * - Limited to `qreg` and `creg` declarations (no advanced types)
+ * - No control flow tokens (if/else/for/while)
+ * - No subroutine or function definitions
+ * - Simpler expression and operator support
+ *
+ * @module 
+ *
+ * @example OpenQASM 2.0 token usage
+ * ```typescript
+ * import { lookup, Token } from './qasm2/token';
+ *
+ * console.log(lookup('qreg'));    // Token.QReg
+ * console.log(lookup('barrier')); // Token.Barrier
+ * console.log(lookup('measure')); // Token.Measure
+ * ```
+ */
+
+/**
+ * Enumeration of OpenQASM 2.0 token types.
+ *
+ * This simplified token set reflects OpenQASM 2.0's focus on basic quantum
+ * circuit description without the advanced features of version 3.0.
+ */
+
 enum Token {
   // 0; invalid or unrecognized token
   Illegal,

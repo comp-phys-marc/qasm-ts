@@ -1,3 +1,34 @@
+/**
+ * OpenQASM 2.0 Lexical Analyzer
+ *
+ * This module implements the lexer for OpenQASM 2.0, which provides a simpler
+ * token set compared to OpenQASM 3.0. The lexer focuses on basic quantum circuit
+ * constructs without the advanced classical programming features of version 3.0.
+ *
+ * Key characteristics of OpenQASM 2.0 lexing:
+ * - **Limited token set**: Basic quantum and classical registers only
+ * - **Simple operators**: Basic arithmetic and comparison operators
+ * - **No control flow**: No tokens for loops, conditionals, or functions
+ * - **Gate-focused**: Emphasis on gate definitions and applications
+ * - **Mathematical functions**: Built-in math functions (sin, cos, etc.)
+ *
+ * Supported constructs:
+ * - Quantum registers (`qreg`) and classical registers (`creg`)
+ * - Gate definitions and applications
+ * - Measurements with arrow notation (`->`)
+ * - Basic arithmetic expressions for gate parameters
+ * - Include statements for library files
+ *
+ * @module
+ *
+ * @example OpenQASM 2.0 lexing
+ * ```typescript
+ * const lexer = new Lexer('qreg q[2]; h q[0]; measure q -> c;');
+ * const tokens = lexer.lex();
+ * // Produces tokens for register declaration, gate, and measurement
+ * ```
+ */
+
 import { Token, lookup } from "./token";
 import {
   BadEqualsError,
@@ -82,7 +113,30 @@ function isNewline(c: string): boolean {
   return /\n|\r(?!\n)|\u2028|\u2029|\r\n/.test(c);
 }
 
-/** Class representing a lexer. */
+/**
+ * OpenQASM 2.0 Lexical Analyzer
+ *
+ * A simpler lexer implementation focused on the core quantum circuit description
+ * features of OpenQASM 2.0. This lexer handles the essential constructs needed
+ * for basic quantum programming without the complexity of classical programming
+ * language features.
+ *
+ * @example Basic OpenQASM 2.0 tokenization
+ * ```typescript
+ * const source = `
+ *   OPENQASM 2.0;
+ *   include "qelib1.inc";
+ *   qreg q[2];
+ *   creg c[2];
+ *   h q[0];
+ *   cx q[0],q[1];
+ *   measure q -> c;
+ * `;
+ *
+ * const lexer = new Lexer(source);
+ * const tokens = lexer.lex();
+ * ```
+ */
 class Lexer {
   /** The string to lex. */
   input: string;

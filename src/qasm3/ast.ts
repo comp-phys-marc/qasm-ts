@@ -1,5 +1,51 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
+/**
+ * OpenQASM 3.0 Abstract Syntax Tree Node Definitions
+ * 
+ * This module defines all the AST node classes that represent the parsed structure
+ * of OpenQASM 3.0 programs. Each class corresponds to a specific language construct
+ * and contains the necessary information to represent that construct in memory.
+ * 
+ * The AST provides a hierarchical representation where:
+ * - **AstNode**: Base class for all nodes
+ * - **Statement**: Executable instructions (declarations, assignments, control flow)
+ * - **Expression**: Value-producing constructs (literals, identifiers, operations)
+ * - **ClassicalType**: Type system for classical data
+ * 
+ * Key node categories:
+ * - **Declarations**: Variable, type, and quantum register declarations
+ * - **Quantum Operations**: Gate calls, measurements, barriers, delays
+ * - **Control Flow**: If/else, loops, switch statements
+ * - **Expressions**: Arithmetic, logical, and function call expressions
+ * - **Types**: Classical type specifications (int, float, bool, etc.)
+ * 
+ * @module
+ * 
+ * @example Building a quantum declaration
+ * ```typescript
+ * import { QuantumDeclaration, Identifier, IntegerLiteral } from './ast';
+ * 
+ * // Represents: qubit[2] q;
+ * const qubitDecl = new QuantumDeclaration(
+ *   new Identifier('q'),
+ *   new IntegerLiteral(2)
+ * );
+ * ```
+ * 
+ * @example Creating expressions
+ * ```typescript
+ * import { Arithmetic, ArithmeticOp, Identifier, FloatLiteral } from './ast';
+ * 
+ * // Represents: theta * 2.0
+ * const expr = new Arithmetic(
+ *   ArithmeticOp.TIMES,
+ *   new Identifier('theta'),
+ *   new FloatLiteral(2.0)
+ * );
+ * ```
+ */
+
 import { OpenQASMVersion } from "../version";
 
 /** Base class representing a basic AST node. */
