@@ -1,5 +1,37 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
+/**
+ * OpenQASM 3.0 Parser Implementation
+ *
+ * This module implements a recursive descent parser for OpenQASM 3.0 that transforms
+ * a stream of tokens into an Abstract Syntax Tree (AST). The parser handles the full
+ * OpenQASM 3.0 language specification including classical programming constructs,
+ * control flow, quantum operations, and advanced features.
+ *
+ * Key parsing capabilities:
+ * - **Classical types**: int, uint, float, bool, bit, complex, angle
+ * - **Control flow**: if/else, for/while loops, switch/case statements
+ * - **Functions**: def, return, extern declarations, subroutine calls
+ * - **Quantum operations**: gate definitions/calls, measurements, barriers, delays
+ * - **Advanced features**: arrays, timing constructs, calibration grammar
+ * - **Expressions**: Arithmetic, logical, function calls with proper precedence
+ *
+ * The parser maintains context about:
+ * - Defined gates (built-in, standard library, custom)
+ * - Declared subroutines and external functions
+ * - Array declarations and aliases
+ * - Type information for validation
+ *
+ * @module
+ *
+ * @example Basic parsing workflow
+ * ```typescript
+ * const tokens = lexer.lex();
+ * const parser = new Parser(tokens);
+ * const ast = parser.parse();
+ * ```
+ */
+
 import { Token } from "./token";
 import { OpenQASMVersion } from "../version";
 import {
@@ -122,7 +154,29 @@ function throwParserError(
   throw new error(errorMessage);
 }
 
-/** Class representing a token parser. */
+/**
+ * OpenQASM 3.0 Recursive Descent Parser
+ *
+ * Implements a comprehensive parser for the OpenQASM 3.0 language specification.
+ * The parser uses recursive descent parsing with appropriate error recovery and
+ * maintains symbol tables for gates, subroutines, and variables.
+ *
+ * Parser state includes:
+ * - Token stream and current position
+ * - Symbol tables for gates, subroutines, arrays, aliases
+ * - Machine-specific defaults (float width, int size)
+ *
+ * @example Creating and using the parser
+ * ```typescript
+ * const parser = new Parser(tokens);
+ *
+ * // Parse the entire program
+ * const ast = parser.parse();
+ *
+ * // AST contains array of top-level statements and declarations
+ * console.log(ast); // [VersionNode, IncludeNode, DeclarationNode, ...]
+ * ```
+ */
 class Parser {
   /** The tokens to parse. */
   tokens: Array<[Token, (number | string)?]>;
@@ -2936,7 +2990,7 @@ class Parser {
   /**
    * Creates a classical type.
    * @param token - The token that represents the type.
-   * @width - The type's width or size, if applicable.
+   * @param width - The type's width or size, if applicable.
    * @return The created ClassicalType.
    */
   createClassicalType(

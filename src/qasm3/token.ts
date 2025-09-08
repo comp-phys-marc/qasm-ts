@@ -1,3 +1,41 @@
+/**
+ * OpenQASM 3.0 Token Definitions and Utilities
+ *
+ * This module defines all the token types used in OpenQASM 3.0 syntax, which
+ * significantly extends OpenQASM 2.0 with modern programming language features.
+ *
+ * Major additions in OpenQASM 3.0:
+ * - **Classical types**: int, uint, float, bool, bit, complex
+ * - **Control flow**: if/else, for/while loops, switch/case
+ * - **Functions**: def, return, extern declarations
+ * - **Advanced features**: arrays, timing (delay, durationof), calibration
+ * - **Quantum extensions**: qubit declarations, gate modifiers, hardware qubits
+ *
+ * @module
+ *
+ * @example OpenQASM 3.0 advanced tokens
+ * ```typescript
+ * import { lookup, Token } from './qasm3/token';
+ *
+ * console.log(lookup('qubit'));    // Token.Qubit
+ * console.log(lookup('if'));       // Token.If
+ * console.log(lookup('def'));      // Token.Def
+ * console.log(lookup('complex'));  // Token.Complex
+ * ```
+ */
+
+/**
+ * Enumeration of all OpenQASM 3.0 token types.
+ *
+ * Each token represents a specific syntactic element in OpenQASM 3.0 code.
+ * The enum values correspond to different categories:
+ * - Literals: NNInteger, Real, String, BoolLiteral
+ * - Identifiers: Id
+ * - Keywords: Qubit, Gate, Measure, If, For, While, etc.
+ * - Operators: ArithmeticOp, BinaryOp, UnaryOp
+ * - Punctuation: Semicolon, Comma, LParen, RParen, etc.
+ * - Special: OpenQASM, Include, EndOfFile, Illegal
+ */
 enum Token {
   // 0; invalid or unrecognized token
   Illegal,
@@ -203,6 +241,14 @@ enum Token {
   CompoundBinaryOp,
 }
 
+/**
+ * Mapping of string keywords to their corresponding token types.
+ *
+ * This lookup table enables the lexer to quickly determine if a string
+ * represents a reserved keyword or should be treated as an identifier.
+ *
+ * @internal
+ */
 const lookupMap: object = {
   pi: Token.Pi,
   π: Token.Pi,
@@ -294,7 +340,7 @@ const lookupMap: object = {
   angle: Token.Angle,
   "@": Token.At,
   complex: Token.Complex,
-  "$": Token.Dollar,
+  $: Token.Dollar,
   array: Token.Array,
   durationof: Token.DurationOf,
   stretch: Token.Stretch,
@@ -306,27 +352,65 @@ const lookupMap: object = {
 };
 
 /**
- * Returns the token that represents a given string.
- * @param ident - The string.
- * @return The corresponding token.
+ * Returns the token type that corresponds to a given string.
+ *
+ * This function is used by the lexer to classify identifiers and keywords.
+ * If the string is a reserved keyword, it returns the appropriate token type.
+ * Otherwise, it returns Token.Id to indicate a user-defined identifier.
+ *
+ * @param ident - The string to look up
+ * @returns The corresponding token type
+ *
+ * @example Keyword lookup
+ * ```typescript
+ * lookup('qubit');     // Returns Token.Qubit
+ * lookup('measure');   // Returns Token.Measure
+ * lookup('myVar');     // Returns Token.Id
+ * lookup('π');         // Returns Token.Pi
+ * ```
  */
 function lookup(ident: string): Token {
   return ident in lookupMap ? lookupMap[ident] : Token.Id;
 }
 
 /**
- * Returns the string representation of a token.
- * @param tokens - The token.
- * @return The string representation of the token.
+ * Returns the string representation of a token type.
+ *
+ * This is useful for debugging and error reporting, allowing you to
+ * convert token enum values back to their string representations.
+ *
+ * @param token - The token type to convert
+ * @returns The string representation of the token, or undefined if not found
+ *
+ * @example Token to string conversion
+ * ```typescript
+ * inverseLookup(Token.Qubit);   // Returns 'qubit'
+ * inverseLookup(Token.If);      // Returns 'if'
+ * inverseLookup(Token.Pi);      // Returns 'pi'
+ * ```
  */
 function inverseLookup(token: Token): string {
   return Object.keys(lookupMap).find((ident) => lookupMap[ident] == token);
 }
 
 /**
- * Determines whether a token denotes a parameter.
- * @param tokens - The token.
- * @return Whether the token does NOT denote a parameter.
+ * Determines whether a token can be used as a parameter in expressions.
+ *
+ * This function helps the parser validate parameter lists by checking if
+ * a token type is allowed in parameter contexts. Parameters can include
+ * identifiers, numbers, and other value-bearing tokens, but not structural
+ * tokens like semicolons or braces.
+ *
+ * @param token - The token type to check
+ * @returns true if the token CANNOT be used as a parameter, false otherwise
+ *
+ * @example Parameter validation
+ * ```typescript
+ * notParam(Token.Id);         // false - identifiers can be parameters
+ * notParam(Token.NNInteger);  // false - numbers can be parameters
+ * notParam(Token.Semicolon);  // true - semicolons cannot be parameters
+ * notParam(Token.LParen);     // true - parentheses cannot be parameters
+ * ```
  */
 function notParam(token: Token): boolean {
   if (

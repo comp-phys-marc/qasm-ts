@@ -1,3 +1,35 @@
+/**
+ * OpenQASM 2.0 Parser Implementation
+ *
+ * This module implements a parser for OpenQASM 2.0 that focuses on the core
+ * quantum circuit description language without the advanced features of version 3.0.
+ * The parser handles quantum and classical register declarations, gate definitions
+ * and applications, measurements, and basic control structures.
+ *
+ * OpenQASM 2.0 parsing capabilities:
+ * - **Register declarations**: qreg and creg with size specifications
+ * - **Gate definitions**: Custom gate definitions with parameters and bodies
+ * - **Gate applications**: Built-in and custom gate applications
+ * - **Measurements**: Quantum measurements with classical result storage
+ * - **Basic conditionals**: Simple if statements based on classical register values
+ * - **Arithmetic expressions**: Parameter expressions for gate operations
+ * - **Opaque gates**: External gate declarations
+ *
+ * The parser maintains a list of known gates and validates gate applications
+ * against declared gates and built-in operations.
+ *
+ * @module
+ *
+ * @example Parsing OpenQASM 2.0 code
+ * ```typescript
+ * const tokens = lexer.lex();
+ * const parser = new Parser(tokens);
+ * const ast = parser.parse();
+ *
+ * // AST contains simplified node structure for OpenQASM 2.0
+ * ```
+ */
+
 import { Token, notParam } from "./token";
 import { OpenQASMVersion } from "../version";
 import {
@@ -41,7 +73,26 @@ import {
   Variable,
 } from "./ast";
 
-/** Class representing a token parser. */
+/**
+ * OpenQASM 2.0 Parser
+ *
+ * A straightforward recursive descent parser for OpenQASM 2.0 that produces
+ * a simplified AST structure appropriate for the more limited feature set
+ * of the 2.0 language specification.
+ *
+ * @example Basic parsing workflow
+ * ```typescript
+ * const parser = new Parser(tokens);
+ * const ast = parser.parse();
+ *
+ * // Process the resulting AST nodes
+ * ast.forEach(node => {
+ *   if (node instanceof QReg) {
+ *     console.log(`Quantum register: ${node.id}[${node.size}]`);
+ *   }
+ * });
+ * ```
+ */
 class Parser {
   /** The tokens to parse. */
   tokens: Array<[Token, (number | string)?]>;

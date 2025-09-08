@@ -1,3 +1,20 @@
+/**
+ * OpenQASM version detection and management utilities
+ *
+ * Handles version detection from QASM source code and provides utilities
+ * for working with different OpenQASM versions. Supports automatic version
+ * detection from OPENQASM statements and manual version specification.
+ *
+ * @module Version Management
+ *
+ * @example Version detection
+ * ```typescript
+ * const version = new OpenQASMVersion(3, 0);
+ * console.log(version.toString()); // "3.0"
+ * console.log(version.isVersion3()); // true
+ * ```
+ */
+
 /** Enum representing the major OpenQASM versions. */
 enum OpenQASMMajorVersion {
   Version2 = 2,
@@ -14,7 +31,7 @@ class OpenQASMVersion {
   /**
    * Creates an OpenQASMVersion instance.
    * @param major - The OpenQASM major version. (optional)
-   * @param minor - The OpenQASM minor version (optional).
+   * @param minor - The OpenQASM minor version (optional)
    */
   constructor(major?: OpenQASMMajorVersion, minor?: number) {
     this.major = major ? major : OpenQASMMajorVersion.Version3;

@@ -1,3 +1,13 @@
+/**
+ * Error classes for QASM parsing and validation
+ *
+ * This module provides specific error types for different parsing failures,
+ * enabling precise error handling and debugging. Each error includes contextual
+ * information about where the error occurred in the source code.
+ *
+ * @module Error Handling
+ */
+
 /** Class representing a bad argument exception. */
 class BadArgumentError extends Error {
   constructor(message?: string) {
