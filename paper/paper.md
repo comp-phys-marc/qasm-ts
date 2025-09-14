@@ -27,7 +27,7 @@ The unique features of the hybrid quantum-classical computing model
 implied by the specification of OpenQASM 3.0 motivate new approaches to
 quantum program verification. We implement and thoroughly test a QASM 3.0 
 parser in TypeScript to enable implementations of verification and validation
-software, compilers and more. We aim to
+software, compilers, and more. We aim to
 help the community to formalize the logic of hybrid quantum-classical
 computing by providing tools that may help with such efforts.
 
@@ -92,7 +92,7 @@ community standards such as the 2022 Open Quantum Assembly (OpenQASM)
 3.0 specification boast typing as well as interoperability and
 portability between quantum systems of different types. However, others such as the QUASAR
 instruction set architecture assume some backend details such as a
-classical co-processor to complement our Quantum Processing Unit (QPU)
+classical co-processor to complement the Quantum Processing Unit (QPU)
 [@shammah_open_2024]. To what extent the classical surrounds of a
 quantum processing unit should be assumed or specified and at what part
 of the stack is an open question. This "piping" can leverage many
@@ -101,17 +101,17 @@ to here is distinct from cloud quantum computing which simply offers a
 web-accessible front-end to users of quantum computers. Instead, we are
 interested in parts of the programming model itself, such as pieces of
 the compile toolchain (compilers, transpilers, assemblers, noise
-profilers, schedulers), which are implemented using web technology. An
-example of this is Quantinuum's QEC decoder toolkit which uses a
+profilers, schedulers) that are implemented using web technology. An
+example of this is Quantinuum's QEC decoder toolkit, which uses a
 WebAssembly (WASM) virtual machine (WAVM) as a real-time classical
 compute environment for QEC decoding [@noauthor_qec_nodate]. Other examples include our
-ports of Quantum Assembly (QASM), Quantum Macro Assembler (QMASM) and
+ports of Quantum Assembly (QASM), Quantum Macro Assembler (QMASM), and
 Blackbrid to TypeScript [@edwards_three_2023].
 
 An important part of standardization is verification. By our typed implementation of an OpenQASM 3.0 parser, we
 implement a system that infers types from QASM syntax. This opens the
-door to the type based formal verification of QASM code. A body of work
-exists regarding the verification of quantum software, which is
+door to the type-based formal verification of QASM code. A body of work
+exists regarding the verification of quantum software, and it is
 summarized in [@exman_verification_2024].
 
 The primary future direction that we see is the development of
@@ -125,10 +125,10 @@ technology, and we argue that it is optimal in a sense to use technology
 that is designed for this environment when we find ourselves working in
 a hybrid quantum / classical cloud. We
 suggest that a closer marriage of open source efforts to the
-inherently web based stack supporting existing quantum computing
+inherently web-based stack supporting existing quantum computing
 offerings is desirable.
 
-We note that Osaka University's open source quantum computer operating system project "Oqtopus"
+We note that Osaka University's open-source quantum computer operating system project "Oqtopus"
 already depends on and makes use of Qasm-ts [@osaka_2025] and thank the Oqtopus team for their interest 
 in our work.
 
