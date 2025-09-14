@@ -108,8 +108,7 @@ compute environment for QEC decoding [@noauthor_qec_nodate]. Other examples incl
 ports of Quantum Assembly (QASM), Quantum Macro Assembler (QMASM), and
 Blackbrid to TypeScript [@edwards_three_2023].
 
-An important part of standardization is verification. By our typed implementation of an OpenQASM 3.0 parser, we
-implement a system that infers types from QASM syntax. This opens the
+An important part of standardization is verification. Our typed OpenQASM 3.0 parser implements a system that infers types from QASM syntax. This opens the
 door to the type-based formal verification of QASM code. A body of work
 exists regarding the verification of quantum software, and it is
 summarized in [@exman_verification_2024].
