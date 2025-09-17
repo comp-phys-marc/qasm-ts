@@ -187,16 +187,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 ## How to Cite
 
-If you are using QASM-TS for research we appreciate any citations. Please read and cite our pre-print at https://arxiv.org/abs/2412.12578.
+If you are using QASM-TS for research we appreciate any citations. Please read and cite our [paper](https://doi.org/10.21105/joss.08696) published with the Journal of Open Source Software.
 
 ```
-@misc{kim2024enablingverificationformalizationhybrid,
-      title={Enabling the Verification and Formalization of Hybrid Quantum-Classical Computing with OpenQASM 3.0 compatible QASM-TS 2.0}, 
-      author={Sean Kim and Marcus Edwards},
-      year={2024},
-      eprint={2412.12578},
-      archivePrefix={arXiv},
-      primaryClass={cs.PL},
-      url={https://arxiv.org/abs/2412.12578}, 
+@article{Kim[2025,
+  doi = {10.21105/joss.08696},
+  url = {https://doi.org/10.21105/joss.08696},
+  year = {2025},
+  publisher = {The Open Journal},
+  volume = {10},
+  number = {113},
+  pages = {8696},
+  author = {Kim[, Sean and Edwards[, Marcus},
+  title = {Enabling the Verification and Formalization of Hybrid Quantum-Classical Computing with OpenQASM 3.0 compatible QASM-TS 2.0},
+  journal = {Journal of Open Source Software}
 }
+ 
 ```
