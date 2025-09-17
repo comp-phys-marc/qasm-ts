@@ -11,9 +11,18 @@ The package is aimed at enabling implementations of verification and validation 
 
 Language documentation is provided by IBM [here](https://openqasm.com).
 
-## New in Version 2.0.0
+## New in Version 2.1.0
 
-- Support for the OpenQASM 3.0 spec while retaining OpenQASM 2.0 backwards compatibility.
+This release includes several improvements made during the review of the repo by reviewers from the Journal of Open Source Software. These improvements include:
+
+- more examples in documentation
+- easier navigation in the documentation
+- files like CONTRIBUTING and LICENSE
+- fix for the compatibility of the test suite with Windows
+- documentation on how to run our benchmarks
+- improvements to the README
+- etc.
+
 
 ## Usage
 
