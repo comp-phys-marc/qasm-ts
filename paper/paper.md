@@ -111,7 +111,7 @@ Blackbrid to TypeScript [@edwards_three_2023].
 An important part of standardization is verification. Our typed OpenQASM 3.0 parser implements a system that infers types from QASM syntax. This opens the
 door to the type-based formal verification of QASM code. A body of work
 exists regarding the verification of quantum software, and it is
-summarized in [@exman_verification_2024].
+summarized in @exman_verification_2024.
 
 The primary future direction that we see is the development of
 verification tools such as static analysis tools based on QASM-TS in the
