@@ -1,6 +1,6 @@
 {
   "name": "qasm-ts",
-  "version": "2.1.0",
+  "version": "2.1.2",
   "description": "QASM, the low-level programming language for quantum circuit specification, implemented in TypeScript.",
   "main": "dist/main.js",
   "scripts": {
