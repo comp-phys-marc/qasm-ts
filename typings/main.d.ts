@@ -90,3 +90,5 @@ export function parseString(
   verbose?: boolean,
   stringify?: boolean,
 ): Qasm3QuantumInstruction[] | string;
+
+export var parseFile: typeof parseString;
