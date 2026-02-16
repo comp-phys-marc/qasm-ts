@@ -1,65 +1,65 @@
-import { Version as Version2, Include as Include2, Gate, QReg, CReg, ApplyGate, Measure, Barrier, If, NNInteger, Cos, Divide, Exp, Ln, Opaque, Pi, Plus, Power, Real, Sin, Sqrt, Tan, Times, Variable } from "../dist/qasm2/ast";
-import { AliasStatement, ArrayDeclaration, AssignmentStatement, BoxDefinition, BranchingStatement, ClassicalDeclaration, ContinueStatement, DurationOf, ExternSignature, ForLoopStatement, Include as Include3, IODeclaration, MathFunction, QuantumBarrier, QuantumDeclaration, QuantumDelay, QuantumGateCall, QuantumGateDefinition, QuantumMeasurement, QuantumMeasurementAssignment, QuantumReset, ReturnStatement, SizeOf, SubroutineCall, SubroutineDefinition, SwitchStatement, TrigFunction, Version as Version3, WhileLoopStatement } from "../dist/qasm3/ast";
-import { OpenQASMVersion, OpenQASMMajorVersion } from "../dist/version";
+import type { OpenQASMVersion, OpenQASMMajorVersion } from "../dist/version";
+import type * as qasm2 from "../dist/qasm2/ast";
+import type * as qasm3 from "../dist/qasm3/ast";
 
 export type Qasm2QuantumInstruction =
-    Include2 |
-    Version2 |
-    QReg |
-    CReg |
-    Barrier |
-    Measure |
-    Gate |
-    Variable |
-    Opaque |
-    If |
-    Power |
-    Divide |
-    Times |
-    Plus |
-    Pi |
-    Sin |
-    Cos |
-    Exp |
-    Ln |
-    Sqrt |
-    Tan |
-    NNInteger|
-    Real |
-    ApplyGate[];
+    qasm2.Include |
+    qasm2.Version |
+    qasm2.QReg |
+    qasm2.CReg |
+    qasm2.Barrier |
+    qasm2.Measure |
+    qasm2.Gate |
+    qasm2.Variable |
+    qasm2.Opaque |
+    qasm2.If |
+    qasm2.Power |
+    qasm2.Divide |
+    qasm2.Times |
+    qasm2.Plus |
+    qasm2.Pi |
+    qasm2.Sin |
+    qasm2.Cos |
+    qasm2.Exp |
+    qasm2.Ln |
+    qasm2.Sqrt |
+    qasm2.Tan |
+    qasm2.NNInteger|
+    qasm2.Real |
+    qasm2.ApplyGate[];
 
 
 export type Qasm3QuantumInstruction =
-  Include3 |
-  Version3 |
-  ClassicalDeclaration |
-  IODeclaration |
-  QuantumDeclaration |
-  QuantumReset |
-  ContinueStatement |
-  AliasStatement |
-  QuantumGateDefinition |
-  ReturnStatement |
-  ExternSignature |
-  QuantumGateCall |
-  QuantumMeasurement |
-  QuantumMeasurementAssignment |
-  MathFunction |
-  TrigFunction |
-  DurationOf |
-  SizeOf |
-  QuantumBarrier |
-  QuantumDelay |
-  ForLoopStatement |
-  WhileLoopStatement |
-  SwitchStatement |
-  ArrayDeclaration |
-  BoxDefinition |
-  AssignmentStatement |
-  SubroutineDefinition |
-  SubroutineCall |
-  BoxDefinition |
-  BranchingStatement
+  qasm3.Include |
+  qasm3.Version |
+  qasm3.ClassicalDeclaration |
+  qasm3.IODeclaration |
+  qasm3.QuantumDeclaration |
+  qasm3.QuantumReset |
+  qasm3.ContinueStatement |
+  qasm3.AliasStatement |
+  qasm3.QuantumGateDefinition |
+  qasm3.ReturnStatement |
+  qasm3.ExternSignature |
+  qasm3.QuantumGateCall |
+  qasm3.QuantumMeasurement |
+  qasm3.QuantumMeasurementAssignment |
+  qasm3.MathFunction |
+  qasm3.TrigFunction |
+  qasm3.DurationOf |
+  qasm3.SizeOf |
+  qasm3.QuantumBarrier |
+  qasm3.QuantumDelay |
+  qasm3.ForLoopStatement |
+  qasm3.WhileLoopStatement |
+  qasm3.SwitchStatement |
+  qasm3.ArrayDeclaration |
+  qasm3.BoxDefinition |
+  qasm3.AssignmentStatement |
+  qasm3.SubroutineDefinition |
+  qasm3.SubroutineCall |
+  qasm3.BoxDefinition |
+  qasm3.BranchingStatement
   ;
 
 export function parseString(

@@ -4,7 +4,9 @@
   "description": "QASM, the low-level programming language for quantum circuit specification, implemented in TypeScript.",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc -p ./tsconfig.json && cp ./typings/main.d.ts ./dist --force",
+    "build": "npm run build:tsc && npm run build:cp",
+    "build:tsc": "tsc -p ./tsconfig.json",
+    "build:cp": "cpx ./typings/main.d.ts ./dist --force",
     "test": "ts-node node_modules/jasmine/bin/jasmine",
     "docs": "typedoc --options docs/typedoc.json"
   },
@@ -34,6 +36,7 @@
     "@types/node": "^12.7.2",
     "@typescript-eslint/eslint-plugin": "^8.42.0",
     "@typescript-eslint/parser": "^8.42.0",
+    "cpx2": "^8.0.0",
     "eslint": "^8.57.0",
     "jasmine": "^3.4.0",
     "typedoc": "^0.28.12",
