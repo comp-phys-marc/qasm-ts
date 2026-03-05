@@ -7,7 +7,6 @@
 
 import type * as qasm2 from "./qasm2/ast"
 import type * as qasm3 from "./qasm3/ast"
-
 import * as fs from "fs";
 import { OpenQASMVersion, OpenQASMMajorVersion } from "./version";
 import { lex } from "./lexer";
@@ -64,7 +63,6 @@ import { parse } from "./parser";
  * // Output will include __className__ properties for each node
  * ```
  */
-
 export function parseString(
   qasm: string,
   version?: number | OpenQASMVersion | OpenQASMMajorVersion,
@@ -119,7 +117,7 @@ export function parseFile(
   version?: number | OpenQASMVersion | OpenQASMMajorVersion,
   verbose?: boolean,
   stringify?: boolean,
-) {
+): string | qasm2.AstNode[] | qasm3.AstNode[] {
   return parseString(
     fs.readFileSync(file, "utf8"),
     version,
