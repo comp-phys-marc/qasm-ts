@@ -67,44 +67,10 @@ import { parse } from "./parser";
 
 export function parseString(
   qasm: string,
-  version: number | OpenQASMVersion | OpenQASMMajorVersion,
-  verbose: boolean,
-  stringify: true
-): string;
-
-export function parseString(
-  qasm: string,
-  version:
-    2 |
-    (OpenQASMVersion & { major: OpenQASMMajorVersion.Version2 }) |
-    OpenQASMMajorVersion.Version2,
-  verbose?: boolean,
-  stringify?: boolean
-): qasm2.AstNode[];
-
-export function parseString(
-  qasm: string,
-  version:
-    3 |
-    (OpenQASMVersion & { major: OpenQASMMajorVersion.Version3 }) |
-    OpenQASMMajorVersion.Version3,
-  verbose?: boolean,
-  stringify?: boolean
-): qasm3.AstNode[];
-
-export function parseString(
-  qasm: string,
-  version?: number | OpenQASMVersion | OpenQASMMajorVersion,
-  verbose?: boolean,
-  stringify?: boolean
-): string | qasm2.AstNode[] | qasm3.AstNode[];
-
-export function parseString(
-  qasm: string,
   version?: number | OpenQASMVersion | OpenQASMMajorVersion,
   verbose?: boolean,
   stringify?: boolean,
-) {
+): string | qasm2.AstNode[] | qasm3.AstNode[] {
   let ast: any;
   const tokens = lex(qasm, undefined, version);
   ast = parse(tokens, version);
@@ -156,7 +122,7 @@ export function parseFile(
 ) {
   return parseString(
     fs.readFileSync(file, "utf8"),
-    version as any,
+    version,
     verbose,
     stringify,
   );
