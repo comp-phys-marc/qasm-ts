@@ -12,7 +12,7 @@ The package is aimed at enabling implementations of verification and validation 
 
 Language documentation is provided by IBM [here](https://openqasm.com).
 
-## New in Version 2.1.0
+## New in Version 2.1.x
 
 This release includes several improvements made during the review of the repo by reviewers from the Journal of Open Source Software. These improvements include:
 
@@ -22,6 +22,7 @@ This release includes several improvements made during the review of the repo by
 - fix for the compatibility of the test suite with Windows
 - documentation on how to run our benchmarks
 - improvements to the README
+- Type exports
 - etc.
 
 
@@ -190,7 +191,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 If you are using QASM-TS for research we appreciate any citations. Please read and cite our [paper](https://doi.org/10.21105/joss.08696) published with the Journal of Open Source Software.
 
 ```
-@article{Kim[2025,
+@article{Kim_2025,
   doi = {10.21105/joss.08696},
   url = {https://doi.org/10.21105/joss.08696},
   year = {2025},
@@ -198,7 +199,7 @@ If you are using QASM-TS for research we appreciate any citations. Please read a
   volume = {10},
   number = {113},
   pages = {8696},
-  author = {Kim[, Sean and Edwards[, Marcus},
+  author = {Kim, Sean and Edwards, Marcus},
   title = {Enabling the Verification and Formalization of Hybrid Quantum-Classical Computing with OpenQASM 3.0 compatible QASM-TS 2.0},
   journal = {Journal of Open Source Software}
 }
